@@ -1,0 +1,246 @@
+import 'package:path/path.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:night_sleep/core/constants/app_constants.dart';
+import 'package:night_sleep/data/models/category_item.dart';
+import 'package:night_sleep/data/models/video_item.dart';
+
+class DatabaseHelper {
+  static final DatabaseHelper instance = DatabaseHelper._init();
+  static Database? _database;
+
+  DatabaseHelper._init();
+
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+    _database = await _initDB(AppConstants.dbName);
+    return _database!;
+  }
+
+  Future<Database> _initDB(String filePath) async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, filePath);
+
+    final db = await openDatabase(
+      path,
+      version: AppConstants.dbVersion,
+      onCreate: _createDB,
+      onUpgrade: _onUpgrade,
+    );
+    await _ensureSchema(db);
+    return db;
+  }
+
+  Future _createDB(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE ${AppConstants.tableVideos} (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        artist TEXT NOT NULL,
+        coverUrl TEXT NOT NULL,
+        duration INTEGER NOT NULL,
+        skipEnd INTEGER NOT NULL,
+        startTime INTEGER NOT NULL DEFAULT 0,
+        endTime INTEGER,
+        filePath TEXT,
+        cid TEXT,
+        category TEXT,
+        addedAt INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS categories (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        sortOrder INTEGER NOT NULL
+      )
+    ''');
+
+    // Insert default categories
+    final defaultCategories = ["默认", "电台", "白噪音", "科普", "有声书", "冥想"];
+    for (int i = 0; i < defaultCategories.length; i++) {
+        await db.insert('categories', {
+          'id': DateTime.now().millisecondsSinceEpoch.toString() + i.toString(),
+          'name': defaultCategories[i],
+          'sortOrder': i,
+        });
+    }
+  }
+
+  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // 添加开始时间列，默认为0
+      await db.execute('ALTER TABLE ${AppConstants.tableVideos} ADD COLUMN startTime INTEGER NOT NULL DEFAULT 0');
+      // 添加结束时间列，可以为空（模型中会默认为总时长）
+      await db.execute('ALTER TABLE ${AppConstants.tableVideos} ADD COLUMN endTime INTEGER');
+      // 添加CID列，用于加速音频解析
+      await db.execute('ALTER TABLE ${AppConstants.tableVideos} ADD COLUMN cid TEXT');
+      // 添加Category列
+      await db.execute('ALTER TABLE ${AppConstants.tableVideos} ADD COLUMN category TEXT');
+    }
+
+    if (oldVersion < 3) {
+       await db.execute('''
+        CREATE TABLE IF NOT EXISTS categories (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          sortOrder INTEGER NOT NULL
+        )
+      ''');
+    }
+  }
+
+  Future<void> _ensureSchema(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS categories (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        sortOrder INTEGER NOT NULL
+      )
+    ''');
+
+    // Defensive migration: handle old installs where dbVersion didn't bump but columns changed.
+    final columns = await db.rawQuery('PRAGMA table_info(${AppConstants.tableVideos})');
+    final columnNames = columns.map((c) => c['name'] as String).toSet();
+
+    if (!columnNames.contains('startTime')) {
+      await db.execute('ALTER TABLE ${AppConstants.tableVideos} ADD COLUMN startTime INTEGER NOT NULL DEFAULT 0');
+    }
+    if (!columnNames.contains('endTime')) {
+      await db.execute('ALTER TABLE ${AppConstants.tableVideos} ADD COLUMN endTime INTEGER');
+    }
+    if (!columnNames.contains('cid')) {
+      await db.execute('ALTER TABLE ${AppConstants.tableVideos} ADD COLUMN cid TEXT');
+    }
+    if (!columnNames.contains('category')) {
+      await db.execute('ALTER TABLE ${AppConstants.tableVideos} ADD COLUMN category TEXT');
+    }
+
+    // Ensure default category exists
+    final existing = await db.query('categories', columns: ['name'], where: 'name = ?', whereArgs: ['默认']);
+    if (existing.isEmpty) {
+      await db.insert('categories', {
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'name': '默认',
+        'sortOrder': 0,
+      });
+    }
+
+    // Remove legacy "全部" category if it exists
+    await db.delete('categories', where: 'name = ?', whereArgs: ['全部']);
+  }
+
+  Future<VideoItem> create(VideoItem video) async {
+    final db = await database;
+    await db.insert(
+      AppConstants.tableVideos, 
+      video.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    return video;
+  }
+
+  Future<VideoItem?> read(String id) async {
+    final db = await database;
+    final maps = await db.query(
+      AppConstants.tableVideos,
+      columns: null,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
+    if (maps.isNotEmpty) {
+      return VideoItem.fromMap(maps.first);
+    } else {
+      return null;
+    }
+  }
+
+  Future<List<VideoItem>> readAllVideos() async {
+    final db = await database;
+    final orderBy = 'addedAt DESC'; // 最近添加的排在前面
+    final result = await db.query(AppConstants.tableVideos, orderBy: orderBy);
+
+    return result.map((json) => VideoItem.fromMap(json)).toList();
+  }
+
+  Future<int> update(VideoItem video) async {
+    final db = await database;
+    return await db.update(
+      AppConstants.tableVideos,
+      video.toMap(),
+      where: 'id = ?',
+      whereArgs: [video.id],
+    );
+  }
+
+  Future<int> delete(String id) async {
+    final db = await database;
+    return await db.delete(
+      AppConstants.tableVideos,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // Category Methods
+  Future<List<CategoryItem>> readAllCategories() async {
+    final db = await database;
+    final result = await db.query(AppConstants.tableCategories, orderBy: 'sortOrder ASC');
+    return result.map((json) => CategoryItem.fromMap(json)).toList();
+  }
+
+  Future<int> updateCategory(CategoryItem category) async {
+    final db = await database;
+    return await db.update(
+      AppConstants.tableCategories,
+      category.toMap(),
+      where: 'id = ?',
+      whereArgs: [category.id],
+    );
+  }
+
+  Future<int> deleteCategory(String id) async {
+    final db = await database;
+    return await db.delete(
+      AppConstants.tableCategories,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<void> createCategory(CategoryItem category) async {
+    final db = await database;
+    await db.insert(AppConstants.tableCategories, category.toMap());
+  }
+
+  Future<void> updateCategoryOrder(List<CategoryItem> categories) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      for (int i = 0; i < categories.length; i++) {
+        await txn.update(
+          AppConstants.tableCategories,
+          {'sortOrder': i},
+          where: 'id = ?',
+          whereArgs: [categories[i].id],
+        );
+      }
+    });
+  }
+
+  Future<List<VideoItem>> readVideosByCategory(String categoryName) async {
+    final db = await database;
+    final result = await db.query(
+      AppConstants.tableVideos,
+      where: 'category = ?',
+      whereArgs: [categoryName],
+      orderBy: 'addedAt DESC',
+    );
+    return result.map((json) => VideoItem.fromMap(json)).toList();
+  }
+
+  Future<void> close() async {
+    final db = await database;
+    db.close();
+  }
+}
