@@ -56,7 +56,7 @@ class DatabaseHelper {
       )
     ''');
 
-    // Insert default categories
+    // 插入默认分类
     final defaultCategories = ["默认", "电台", "白噪音", "科普", "有声书", "冥想"];
     for (int i = 0; i < defaultCategories.length; i++) {
         await db.insert('categories', {
@@ -99,7 +99,7 @@ class DatabaseHelper {
       )
     ''');
 
-    // Defensive migration: handle old installs where dbVersion didn't bump but columns changed.
+    // 防御性迁移：处理旧版本安装（数据库版本未更新但字段变更的情况）
     final columns = await db.rawQuery('PRAGMA table_info(${AppConstants.tableVideos})');
     final columnNames = columns.map((c) => c['name'] as String).toSet();
 
@@ -116,7 +116,7 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE ${AppConstants.tableVideos} ADD COLUMN category TEXT');
     }
 
-    // Ensure default category exists
+    // 确保默认分类存在
     final existing = await db.query('categories', columns: ['name'], where: 'name = ?', whereArgs: ['默认']);
     if (existing.isEmpty) {
       await db.insert('categories', {
@@ -126,7 +126,7 @@ class DatabaseHelper {
       });
     }
 
-    // Remove legacy "全部" category if it exists
+    // 移除旧版本的“全部”分类（如果存在）
     await db.delete('categories', where: 'name = ?', whereArgs: ['全部']);
   }
 
@@ -183,7 +183,7 @@ class DatabaseHelper {
     );
   }
 
-  // Category Methods
+  // 分类相关方法
   Future<List<CategoryItem>> readAllCategories() async {
     final db = await database;
     final result = await db.query(AppConstants.tableCategories, orderBy: 'sortOrder ASC');

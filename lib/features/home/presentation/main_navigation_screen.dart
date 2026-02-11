@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:night_sleep/core/theme/promax_colors.dart';
 import 'package:night_sleep/data/models/video_item.dart';
 import 'package:night_sleep/features/import/presentation/import_screen.dart';
@@ -24,7 +25,6 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> with WidgetsBindingObserver {
   int _currentIndex = 0;
   String? _lastClipboardText;
-  String? _detectedLink;
 
   final List<Widget> _screens = [
     const HomeScreen(),
@@ -52,30 +52,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
     }
   }
 
-  Future<void> _checkClipboard() async {
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
-    final text = data?.text;
-    if (text != null && text != _lastClipboardText) {
-      if (text.contains("bilibili.com") || text.contains("BV")) {
-        setState(() {
-          _detectedLink = text;
-          _lastClipboardText = text;
-        });
-      }
-    }
-  }
-
-  void _onParseLink() {
-    final link = _detectedLink;
-    setState(() => _detectedLink = null);
-    if (link != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => ImportScreen(initialText: link)),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -87,7 +63,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
             children: _screens,
           ),
           
-          // Global Mini Player (Home only)
+          // 全局迷你播放器（仅在首页显示）
           if (_currentIndex == 0) _buildFloatingMiniPlayer(),
 
           Positioned(
@@ -99,22 +75,167 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
               onTap: (index) => setState(() => _currentIndex = index),
             ),
           ),
-          if (_detectedLink != null)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 180, // Moved up to avoid crossing with miniplayer/nav
-              child: ClipboardPopup(
-                content: _detectedLink!,
-                onParse: _onParseLink,
-                onDismiss: () => setState(() => _detectedLink = null),
-              ),
-            ),
         ],
       ),
     );
   }
 
+  Future<void> _checkClipboard() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = data?.text;
+    if (text != null && text != _lastClipboardText) {
+      // Regex for BV ID and b23.tv short link
+      final bvRegex = RegExp(r'BV[a-zA-Z0-9]{10}');
+      final b23Regex = RegExp(r'b23\.tv/[a-zA-Z0-9]+');
+
+      if (text.contains("bilibili.com") || bvRegex.hasMatch(text) || b23Regex.hasMatch(text)) {
+        setState(() {
+          _lastClipboardText = text;
+        });
+        
+        // Use Future.delayed to ensure context is ready and frame is settled
+        if (mounted) {
+           Future.delayed(const Duration(milliseconds: 300), () {
+             if (mounted) _showClipboardBottomSheet(text);
+           });
+        }
+      }
+    }
+  }
+
+  void _showClipboardBottomSheet(String link) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: const BoxDecoration(
+            color: Color(0xFF140F0D), // 深咖啡色 / 接近黑色
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+            border: Border(top: BorderSide(color: Colors.white10, width: 1)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40, 
+                height: 4, 
+                decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(2))
+              ),
+              const SizedBox(height: 24),
+              
+              // 图标环
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF2C2018),
+                  border: Border.all(color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.3)),
+                ),
+                child: const Icon(Icons.link_rounded, color: ProMaxColors.stitchCozyAccent, size: 32),
+              ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
+              
+              const SizedBox(height: 20),
+              
+              Text(
+                "检测到 B 站链接",
+                style: GoogleFonts.manrope(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "是否立即解析剪贴板中的视频内容？",
+                style: TextStyle(color: ProMaxColors.stitchCozyTextMuted, fontSize: 14),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // 链接预览卡片
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFB7299).withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text("Bilibili", style: TextStyle(color: Color(0xFFFB7299), fontSize: 10, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        link,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white70, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 32),
+              
+              // 解析按钮
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close sheet
+                    _onParseLink(link);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ProMaxColors.stitchCozyAccent, // Gold
+                    foregroundColor: const Color(0xFF140F0D), // Black text
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                       Icon(Icons.play_arrow_rounded, size: 24),
+                       SizedBox(width: 8),
+                       Text("立即解析", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // 取消按钮
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("取消", style: TextStyle(color: ProMaxColors.stitchCozyTextMuted)),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _onParseLink(String link) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => ImportScreen(initialText: link)),
+    );
+  }
   Widget _buildFloatingMiniPlayer() {
     return StreamBuilder<MediaItem?>(
       stream: context.watch<AudioHandler>().mediaItem,
@@ -123,13 +244,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
         if (mediaItem == null) return const SizedBox.shrink();
 
         return Positioned(
-          bottom: 110, // Just above the bottom nav bar
+          bottom: 110, // 位于底部导航栏上方
           left: 20,
           right: 20,
           child: GestureDetector(
             onTap: () {
-              // Open player screen using the mediaItem info
-              // We'll reconstruct a VideoItem from extras or just enough for PlayerScreen
+              // 使用 mediaItem 信息打开播放器页面
+              // 我们将从 extras 重构 VideoItem，或者仅构建 PlayerScreen 所需的部分信息
               final video = VideoItem(
                 id: mediaItem.id,
                 title: mediaItem.title,
@@ -175,7 +296,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
                 borderRadius: BorderRadius.circular(36),
                 child: Stack(
                   children: [
-                    // Progress Indicator Background
+                    // 进度条背景
                     StreamBuilder<Duration>(
                       stream: AudioService.position,
                       builder: (context, posSnapshot) {
@@ -226,7 +347,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
                               children: [
                                 Text(
                                   "正在播放",
-                                  style: TextStyle(color: ProMaxColors.stitchCozyCardBg.withValues(alpha: 0.5), fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1),
+                                  style: TextStyle(color: ProMaxColors.stitchCozyTextMuted, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1),
                                 ),
                                 Hero(
                                   tag: 'mini-title-${mediaItem.id}',
@@ -234,7 +355,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
                                     mediaItem.title,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(color: ProMaxColors.stitchCozyCardBg, fontSize: 13, fontWeight: FontWeight.bold),
+                                    style: const TextStyle(color: ProMaxColors.stitchCozyTextLight, fontSize: 13, fontWeight: FontWeight.bold),
                                   ),
                                 ),
                               ],
@@ -244,7 +365,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
                             children: [
                               IconButton(
                                 icon: const Icon(Icons.skip_next_rounded, size: 26),
-                                color: ProMaxColors.stitchCozyCardBg.withValues(alpha: 0.7),
+                                color: ProMaxColors.stitchCozyTextLight.withValues(alpha: 0.7),
                                 onPressed: () => context.read<AudioHandler>().skipToNext(),
                               ),
                               StreamBuilder<PlaybackState>(
@@ -252,9 +373,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
                                 builder: (context, pSnapshot) {
                                   final playing = pSnapshot.data?.playing ?? false;
                                   return Container(
-                                    decoration: const BoxDecoration(shape: BoxShape.circle, color: ProMaxColors.stitchCozyCardBg),
+                                    decoration: const BoxDecoration(shape: BoxShape.circle, color: ProMaxColors.stitchCozyAccent),
                                     child: IconButton(
-                                      icon: Icon(playing ? Icons.pause_rounded : Icons.play_arrow_rounded, color: ProMaxColors.stitchCozyAccent, size: 22),
+                                      icon: Icon(playing ? Icons.pause_rounded : Icons.play_arrow_rounded, color: ProMaxColors.stitchCozyBg, size: 22),
                                       onPressed: () => playing ? context.read<AudioHandler>().pause() : context.read<AudioHandler>().play(),
                                     ),
                                   );

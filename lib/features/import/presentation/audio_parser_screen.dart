@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:night_sleep/core/theme/promax_colors.dart';
@@ -29,6 +30,8 @@ class _AudioParserScreenState extends State<AudioParserScreen> {
   bool _isPreviewing = false;
   Timer? _previewTimer;
   late final AudioPlayer _previewPlayer;
+
+  DateTime? _lastFeedbackTime;
 
   @override
   void initState() {
@@ -70,7 +73,7 @@ class _AudioParserScreenState extends State<AudioParserScreen> {
     final confirmSpacer = confirmSize + confirmBottom + (isCompact ? 12.0 : 16.0);
 
     return Scaffold(
-      backgroundColor: ProMaxColors.stitchFluidBg,
+      backgroundColor: ProMaxColors.stitchCozyBg,
       body: Stack(
         children: [
           // Main Content
@@ -130,7 +133,7 @@ class _AudioParserScreenState extends State<AudioParserScreen> {
               },
               child: const Text(
                 "重置",
-                style: TextStyle(color: ProMaxColors.stitchFluidTextMuted, fontWeight: FontWeight.bold),
+                style: TextStyle(color: ProMaxColors.stitchCozyTextMuted, fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -144,25 +147,25 @@ class _AudioParserScreenState extends State<AudioParserScreen> {
       child: FittedBox(
         fit: BoxFit.scaleDown,
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: isCompact ? 16 : 32),
+          padding: EdgeInsets.symmetric(vertical: isCompact ? 16 : 24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               FluidRippleAnimation(
                 coverUrl: widget.video.coverUrl,
-                size: isCompact ? 220 : 260,
-                coverSize: isCompact ? 164 : 192,
-                badgePadding: isCompact ? 6 : 8,
-                badgeIconSize: isCompact ? 18 : 20,
+                size: isCompact ? 280 : 340, // Increased from 220/260
+                coverSize: isCompact ? 200 : 250, // Increased from 164/192
+                badgePadding: isCompact ? 8 : 10,
+                badgeIconSize: isCompact ? 20 : 24,
               ),
-              SizedBox(height: isCompact ? 20 : 32),
+              SizedBox(height: isCompact ? 24 : 40), // Increased spacing slightly for better separation
               _buildTimeDisplay(isCompact: isCompact),
-              SizedBox(height: isCompact ? 6 : 8),
+              SizedBox(height: isCompact ? 8 : 12),
               const Text(
                 "拖动滑块截取片段",
                 style: TextStyle(
-                  color: ProMaxColors.stitchFluidTextMuted,
-                  fontSize: 13,
+                  color: ProMaxColors.stitchCozyTextMuted,
+                  fontSize: 14, // Slightly larger
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -174,13 +177,13 @@ class _AudioParserScreenState extends State<AudioParserScreen> {
   }
 
   Widget _buildTimeDisplay({required bool isCompact}) {
-    final timeFont = isCompact ? 34.0 : 42.0;
+    final timeFont = isCompact ? 40.0 : 48.0; // Increased from 34/42
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           _formatDuration(Duration(seconds: _range.start.toInt())),
-          style: TextStyle(color: Colors.white, fontSize: timeFont, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.white, fontSize: timeFont, fontWeight: FontWeight.bold, letterSpacing: -1),
         ),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: isCompact ? 8 : 12),
@@ -188,7 +191,7 @@ class _AudioParserScreenState extends State<AudioParserScreen> {
         ),
         Text(
           _formatDuration(Duration(seconds: _range.end.toInt())),
-          style: TextStyle(color: ProMaxColors.stitchFluidPrimary, fontSize: timeFont, fontWeight: FontWeight.bold),
+          style: TextStyle(color: ProMaxColors.stitchCozyAccent, fontSize: timeFont, fontWeight: FontWeight.bold, letterSpacing: -1),
         ),
       ],
     );
@@ -196,20 +199,16 @@ class _AudioParserScreenState extends State<AudioParserScreen> {
 
   Widget _buildControlPanel({required bool isCompact, required double confirmSpacer}) {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: isCompact ? 16 : 24),
-      decoration: const BoxDecoration(
-        color: ProMaxColors.stitchFluidCoffeeDark,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(48)),
-      ),
+      padding: EdgeInsets.symmetric(vertical: isCompact ? 8 : 16), // Reduced vertical padding
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildCategorySelection(isCompact: isCompact),
-          SizedBox(height: isCompact ? 16 : 24),
+          SizedBox(height: isCompact ? 12 : 20), // Reduced spacing
           _buildRangeSliderArea(),
-          SizedBox(height: isCompact ? 16 : 24),
+          SizedBox(height: isCompact ? 16 : 24), // Reduced spacing
           _buildPreviewButton(),
-          SizedBox(height: confirmSpacer), // Space for floating check button
+          SizedBox(height: confirmSpacer), 
         ],
       ),
     );
@@ -220,24 +219,24 @@ class _AudioParserScreenState extends State<AudioParserScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24, vertical: isCompact ? 4 : 8),
+          padding: EdgeInsets.symmetric(horizontal: 24, vertical: isCompact ? 2 : 4), // Reduced padding
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("选择分类", style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 14)),
-              Text("滑动查看", style: TextStyle(color: ProMaxColors.stitchFluidPrimary.withValues(alpha: 0.6), fontSize: 11)),
+              const Text("选择分类", style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 13)), // Slightly smaller label
+              Text("滑动查看", style: TextStyle(color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.6), fontSize: 11)),
             ],
           ),
         ),
         SizedBox(
-          height: isCompact ? 84 : 100,
+          height: isCompact ? 68 : 80, // Reduced height for list
           child: _isCategoriesLoading
-            ? const Center(child: CircularProgressIndicator(color: ProMaxColors.stitchFluidPrimary))
+            ? const Center(child: CircularProgressIndicator(color: ProMaxColors.stitchCozyAccent))
             : ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 scrollDirection: Axis.horizontal,
                 itemCount: _categories.length + 1,
-                separatorBuilder: (context, index) => const SizedBox(width: 12),
+                separatorBuilder: (context, index) => const SizedBox(width: 10), // Tighter spacing
                 itemBuilder: (context, index) {
                   if (index == 0) {
                     return _buildAddCategoryButton(isCompact: isCompact);
@@ -262,15 +261,15 @@ class _AudioParserScreenState extends State<AudioParserScreen> {
         _loadCategories();
       },
       child: Container(
-        width: 48,
-        height: 48,
-        margin: EdgeInsets.symmetric(vertical: isCompact ? 14 : 26),
+        width: 44, // Smaller button
+        height: 44,
+        margin: EdgeInsets.symmetric(vertical: isCompact ? 10 : 16), // Reduced margin
         decoration: BoxDecoration(
-          color: ProMaxColors.stitchFluidPrimary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: ProMaxColors.stitchFluidPrimary.withValues(alpha: 0.3)),
+          color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.1),
+          shape: BoxShape.circle,
+          border: Border.all(color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.5)),
         ),
-        child: const Icon(Icons.add_rounded, color: ProMaxColors.stitchFluidPrimary),
+        child: const Icon(Icons.add_rounded, color: ProMaxColors.stitchCozyAccent, size: 22),
       ),
     );
   }
@@ -279,24 +278,24 @@ class _AudioParserScreenState extends State<AudioParserScreen> {
     return GestureDetector(
       onTap: () => setState(() => _selectedCategory = name),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        margin: EdgeInsets.symmetric(vertical: isCompact ? 14 : 26),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10), // Tighter padding
+        margin: EdgeInsets.symmetric(vertical: isCompact ? 10 : 16), // Reduced margin
         decoration: BoxDecoration(
-          color: isSelected ? ProMaxColors.stitchFluidCoffeeLight : ProMaxColors.stitchFluidCoffeeDark,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected ? ProMaxColors.stitchFluidPrimary.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.05),
-          ),
-          boxShadow: isSelected ? [
-             BoxShadow(color: ProMaxColors.stitchFluidPrimary.withValues(alpha: 0.1), blurRadius: 10)
-          ] : null,
+          color: isSelected 
+              ? ProMaxColors.stitchCozyAccent.withValues(alpha: 0.1) 
+              : Colors.white.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(24),
+          border: isSelected 
+              ? Border.all(color: ProMaxColors.stitchCozyAccent) 
+              : null,
         ),
         alignment: Alignment.center,
         child: Text(
           name,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.white60,
-            fontWeight: FontWeight.bold,
+            color: isSelected ? ProMaxColors.stitchCozyAccent : Colors.white60,
+            fontWeight: isSelected ? FontWeight.w900 : FontWeight.normal,
+            fontSize: 13, // Slightly smaller text
           ),
         ),
       ),
@@ -311,15 +310,23 @@ class _AudioParserScreenState extends State<AudioParserScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: const [
-               Text("START", style: TextStyle(color: ProMaxColors.stitchFluidTextMuted, fontSize: 10, fontFamily: "monospace")),
-               Text("END", style: TextStyle(color: ProMaxColors.stitchFluidTextMuted, fontSize: 10, fontFamily: "monospace")),
+               Text("START", style: TextStyle(color: ProMaxColors.stitchCozyTextMuted, fontSize: 10, fontFamily: "monospace")),
+               Text("END", style: TextStyle(color: ProMaxColors.stitchCozyTextMuted, fontSize: 10, fontFamily: "monospace")),
             ],
           ),
           const SizedBox(height: 8),
           _WaveformRangeSlider(
             values: _range,
             max: widget.video.duration.toDouble(),
-            onChanged: (val) => setState(() => _range = val),
+            onChanged: (val) {
+               final now = DateTime.now();
+               if (_lastFeedbackTime == null || now.difference(_lastFeedbackTime!) > const Duration(milliseconds: 40)) {
+                 HapticFeedback.selectionClick();
+                 SystemSound.play(SystemSoundType.click);
+                 _lastFeedbackTime = now;
+               }
+               setState(() => _range = val);
+            },
           ),
         ],
       ),
@@ -330,22 +337,21 @@ class _AudioParserScreenState extends State<AudioParserScreen> {
     return GestureDetector(
       onTap: _togglePreview,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
         decoration: BoxDecoration(
-          color: ProMaxColors.stitchFluidCoffeeLight,
+          color: const Color(0xFF3E3228), // Brownish dark from design
           borderRadius: BorderRadius.circular(32),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               _isPreviewing ? Icons.pause_circle_filled_rounded : Icons.play_circle_filled_rounded,
-              color: ProMaxColors.stitchFluidPrimary,
-              size: 24,
+              color: ProMaxColors.stitchCozyAccent,
+              size: 20,
             ),
             const SizedBox(width: 8),
-            Text(_isPreviewing ? "暂停试听" : "试听片段", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            Text(_isPreviewing ? "暂停试听" : "试听片段", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
           ],
         ),
       ),
@@ -396,19 +402,32 @@ class _AudioParserScreenState extends State<AudioParserScreen> {
         width: 80,
         height: 80,
         decoration: BoxDecoration(
-          color: ProMaxColors.stitchFluidPrimary,
+          color: ProMaxColors.stitchCozyAccent,
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: ProMaxColors.stitchFluidPrimary.withValues(alpha: 0.4),
+              color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.4),
               blurRadius: 30,
               offset: const Offset(0, 10),
             )
           ],
         ),
-        child: _isSaving 
-          ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
-          : const Icon(Icons.check_rounded, color: Colors.white, size: 40),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 68,
+              height: 68,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF140F0D).withValues(alpha: 0.15), width: 1.5),
+              ),
+            ),
+            _isSaving 
+              ? const CircularProgressIndicator(color: Color(0xFF140F0D), strokeWidth: 3)
+              : const Icon(Icons.check_rounded, color: Color(0xFF140F0D), size: 40),
+          ],
+        ),
       ).animate(onPlay: (controller) => controller.repeat())
        .scale(begin: const Offset(0.95, 0.95), end: const Offset(1.05, 1.05), duration: 2.seconds, curve: Curves.easeInOut)
        .then()
@@ -418,7 +437,7 @@ class _AudioParserScreenState extends State<AudioParserScreen> {
 
   Widget _buildSuccessOverlay() {
     return Container(
-      color: ProMaxColors.stitchFluidBg.withValues(alpha: 0.8),
+      color: ProMaxColors.stitchCozyBg.withValues(alpha: 0.9),
       alignment: Alignment.center,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -426,10 +445,10 @@ class _AudioParserScreenState extends State<AudioParserScreen> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: const BoxDecoration(
-              color: ProMaxColors.stitchFluidPrimary,
+              color: ProMaxColors.stitchCozyAccent,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.check_rounded, color: Colors.white, size: 48),
+            child: const Icon(Icons.check_rounded, color: Color(0xFF140F0D), size: 48),
           ).animate().scale(duration: 400.ms, curve: Curves.elasticOut),
           const SizedBox(height: 24),
           const Text(
@@ -559,7 +578,7 @@ class _WaveformRangeSlider extends StatelessWidget {
         return Container(
           height: 80,
           decoration: BoxDecoration(
-            color: ProMaxColors.stitchFluidCoffeeLight.withValues(alpha: 0.3),
+            color: Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           ),
@@ -595,9 +614,9 @@ class _WaveformRangeSlider extends StatelessWidget {
                 bottom: 0,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: ProMaxColors.stitchFluidPrimary.withValues(alpha: 0.15),
+                    color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.15),
                     border: Border.symmetric(
-                      vertical: BorderSide(color: ProMaxColors.stitchFluidPrimary.withValues(alpha: 0.5), width: 1),
+                      vertical: BorderSide(color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.5), width: 1),
                     ),
                   ),
                 ),
@@ -646,22 +665,28 @@ class _WaveformRangeSlider extends StatelessWidget {
       width: 32,
       height: 48,
       decoration: BoxDecoration(
-        color: ProMaxColors.stitchFluidPrimary,
+        color: ProMaxColors.stitchCozyAccent,
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: ProMaxColors.stitchFluidPrimary.withValues(alpha: 0.4),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
+            color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.6),
+            blurRadius: 24,
+            spreadRadius: 2,
+            offset: const Offset(0, 0),
+          ),
+          BoxShadow(
+            color: ProMaxColors.stitchCozyAccent,
+            blurRadius: 8,
+            offset: const Offset(0, 0),
           )
         ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(width: 2, height: 16, decoration: BoxDecoration(color: Colors.white30, borderRadius: BorderRadius.circular(1))),
+          Container(width: 2, height: 16, decoration: BoxDecoration(color: const Color(0xFF140F0D).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(1))),
           const SizedBox(width: 2),
-          Container(width: 2, height: 16, decoration: BoxDecoration(color: Colors.white30, borderRadius: BorderRadius.circular(1))),
+          Container(width: 2, height: 16, decoration: BoxDecoration(color: const Color(0xFF140F0D).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(1))),
         ],
       ),
     );
@@ -723,7 +748,7 @@ class FluidRippleAnimation extends StatelessWidget {
             height: coverSize,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: ProMaxColors.stitchFluidCoffeeDark, width: 4),
+              border: Border.all(color: ProMaxColors.stitchCozyCardBg, width: 4),
               boxShadow: [
                 BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 40, offset: const Offset(0, 20)),
               ],
@@ -742,10 +767,10 @@ class FluidRippleAnimation extends StatelessWidget {
             child: Container(
               padding: EdgeInsets.all(badgePadding),
               decoration: const BoxDecoration(
-                color: ProMaxColors.stitchFluidPrimary,
+                color: ProMaxColors.stitchCozyAccent,
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.graphic_eq_rounded, color: Colors.white, size: badgeIconSize),
+              child: Icon(Icons.graphic_eq_rounded, color: const Color(0xFF140F0D), size: badgeIconSize),
             ),
           ),
         ],
@@ -759,7 +784,7 @@ class FluidRippleAnimation extends StatelessWidget {
       height: size - 4,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: ProMaxColors.stitchFluidPrimary.withValues(alpha: 0.2)),
+        border: Border.all(color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.2)),
       ),
     );
   }

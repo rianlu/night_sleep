@@ -89,13 +89,13 @@ class _ImportScreenState extends State<ImportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ProMaxColors.stitchFluidBg,
+      backgroundColor: ProMaxColors.stitchCozyBg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: ProMaxColors.stitchFluidTextMuted),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: ProMaxColors.stitchCozyTextMuted),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -111,12 +111,13 @@ class _ImportScreenState extends State<ImportScreen> {
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
+          // Using a subtle gradient for "Cozy" theme if needed, or just solid bg
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              ProMaxColors.stitchFluidBg,
-              ProMaxColors.stitchFluidCoffeeDark,
+              ProMaxColors.stitchCozyBg,
+              Color(0xFF0F0B09), // Even darker bottom
             ],
           ),
         ),
@@ -132,7 +133,7 @@ class _ImportScreenState extends State<ImportScreen> {
                 Text(
                   "粘贴 B 站链接",
                   style: GoogleFonts.manrope(
-                    color: ProMaxColors.stitchFluidPrimary,
+                    color: ProMaxColors.stitchCozyAccent,
                     fontSize: 28,
                     fontWeight: FontWeight.w900,
                   ),
@@ -141,7 +142,7 @@ class _ImportScreenState extends State<ImportScreen> {
                 Text(
                   "复制您想收听的视频或音频链接，我们将为您提取纯净的音频内容。",
                   style: const TextStyle(
-                    color: ProMaxColors.stitchFluidTextMuted,
+                    color: ProMaxColors.stitchCozyTextMuted,
                     fontSize: 14,
                     height: 1.5,
                   ),
@@ -178,10 +179,10 @@ class _ImportScreenState extends State<ImportScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: ProMaxColors.stitchFluidCoffeeDark,
+        color: ProMaxColors.stitchCozyCardBg,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: _error != null ? Colors.redAccent.withValues(alpha: 0.5) : ProMaxColors.stitchFluidPrimary.withValues(alpha: 0.3),
+          color: _error != null ? Colors.redAccent.withValues(alpha: 0.5) : ProMaxColors.stitchCozyAccent.withValues(alpha: 0.3),
           width: 1.5,
         ),
       ),
@@ -223,18 +224,18 @@ class _ImportScreenState extends State<ImportScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: ProMaxColors.stitchFluidPrimary,
+          color: ProMaxColors.stitchCozyAccent,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: const [
-            Icon(Icons.content_paste_rounded, color: ProMaxColors.stitchReportBg, size: 16),
+            Icon(Icons.content_paste_rounded, color: Color(0xFF140F0D), size: 16),
             SizedBox(width: 8),
             Text(
               "一键粘贴",
               style: TextStyle(
-                color: ProMaxColors.stitchReportBg,
+                color: Color(0xFF140F0D),
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
               ),
@@ -252,8 +253,8 @@ class _ImportScreenState extends State<ImportScreen> {
       child: ElevatedButton(
         onPressed: _isLoading ? null : _import,
         style: ElevatedButton.styleFrom(
-          backgroundColor: ProMaxColors.stitchFluidPrimary,
-          foregroundColor: ProMaxColors.stitchFluidBg, // Black text on Amber
+          backgroundColor: ProMaxColors.stitchCozyAccent,
+          foregroundColor: const Color(0xFF140F0D), // Black text on Gold
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
           elevation: 0,
         ),
@@ -262,7 +263,7 @@ class _ImportScreenState extends State<ImportScreen> {
               width: 24,
               height: 24,
               child: CircularProgressIndicator(
-                color: ProMaxColors.stitchFluidBg,
+                color: Color(0xFF140F0D),
                 strokeWidth: 2.5,
               ),
             )
@@ -302,13 +303,13 @@ class _ImportScreenState extends State<ImportScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(Icons.info_rounded, color: ProMaxColors.stitchFluidPrimary.withValues(alpha: 0.7), size: 20),
+        Icon(Icons.info_rounded, color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.7), size: 20),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
             "支持解析视频、电台等多种格式。\n解析过程可能需要几秒钟，请耐心等待。",
             style: TextStyle(
-              color: ProMaxColors.stitchFluidTextMuted.withValues(alpha: 0.6),
+              color: ProMaxColors.stitchCozyTextMuted.withValues(alpha: 0.6),
               fontSize: 13,
               height: 1.5,
             ),

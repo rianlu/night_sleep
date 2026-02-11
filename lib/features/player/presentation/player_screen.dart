@@ -30,11 +30,14 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   late VideoItem _displayItem;
   late final AnimationController _coverRotationController;
   late final AnimationController _dragResetController;
+  late final AnimationController _breathingController;
   StreamSubscription<PlaybackState>? _playbackSub;
-  bool _isDragging = false;
-  double? _dragValue;
   double _dragOffset = 0;
   bool _canDragToDismiss = false;
+
+  // Slider State
+  bool _isDraggingSlider = false;
+  double? _sliderValue;
 
   @override
   void initState() {
@@ -42,6 +45,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     _displayItem = widget.videoItem;
     _coverRotationController = AnimationController(vsync: this, duration: const Duration(seconds: 20));
     _dragResetController = AnimationController(vsync: this, duration: const Duration(milliseconds: 200));
+    _breathingController = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat(reverse: true);
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final handler = context.read<AudioHandler>();
@@ -74,12 +78,15 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     _playbackSub?.cancel();
     _coverRotationController.dispose();
     _dragResetController.dispose();
+    _breathingController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final audioHandler = context.watch<AudioHandler>();
+    // Use Canonical Amber Gold Theme Color
+    const primaryColor = ProMaxColors.stitchPrimary;
 
     return StreamBuilder<MediaItem?>(
       stream: audioHandler.mediaItem,
@@ -87,7 +94,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
         final mediaItem = snapshot.data;
         
         return Scaffold(
-          backgroundColor: ProMaxColors.stitchCozyBg,
+          backgroundColor: ProMaxColors.stitchBackground, // Deep Warm Coffee
           extendBodyBehindAppBar: true,
           appBar: _buildAppBar(context),
           body: GestureDetector(
@@ -121,7 +128,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
               },
               child: Stack(
                 children: [
-                  _buildThemeBackground(),
+                  _buildThemeBackground(primaryColor),
                   
                   SafeArea(
                     child: Padding(
@@ -130,25 +137,30 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                         children: [
                           const Spacer(flex: 2),
                           
-                          // 封面图与弧形进度条
-                          _buildCoverSection(audioHandler),
+                          // 1. Vinyl Cover
+                          _buildVinylCover(audioHandler, primaryColor),
+                          
+                          const Spacer(flex: 1), 
+                          
+                          // 2. Track Info
+                          _buildTrackInfo(mediaItem, primaryColor),
+                          
+                          const SizedBox(height: 32),
+
+                          // 3. Linear Progress Bar
+                          _buildProgressBar(audioHandler, primaryColor),
                           
                           const Spacer(flex: 2),
                           
-                          // 歌曲信息
-                          _buildTrackInfo(mediaItem),
+                          // 4. Main Controls
+                          _buildMainControls(audioHandler, primaryColor),
                           
-                          const Spacer(flex: 4),
+                          const Spacer(flex: 2),
                           
-                          // 主控制器
-                          _buildMainControls(audioHandler),
+                          // 5. Bottom Pill Action Bar
+                          _buildBottomPillBar(context, audioHandler, primaryColor),
                           
-                          const Spacer(flex: 3),
-                          
-                          // 底部动作面板
-                          _buildBottomActionPanel(context, audioHandler),
-                          
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 32),
                         ],
                       ),
                     ),
@@ -179,14 +191,14 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
       backgroundColor: Colors.transparent,
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.expand_more_rounded, size: 32, color: ProMaxColors.stitchCozyTextLight),
+        icon: const Icon(Icons.expand_more_rounded, size: 32, color: ProMaxColors.stitchTextLight),
         onPressed: () => Navigator.pop(context),
       ),
       centerTitle: true,
       title: Text(
         "正在播放",
         style: TextStyle(
-          color: ProMaxColors.stitchCozyTextLight.withValues(alpha: 0.3),
+          color: ProMaxColors.stitchTextLight.withValues(alpha: 0.3),
           fontSize: 13,
           fontWeight: FontWeight.bold,
           letterSpacing: 2.5,
@@ -194,14 +206,14 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.more_horiz_rounded, color: ProMaxColors.stitchCozyTextLight),
+          icon: const Icon(Icons.more_horiz_rounded, color: ProMaxColors.stitchTextLight),
           onPressed: () {},
         ),
       ],
     );
   }
 
-  Widget _buildThemeBackground() {
+  Widget _buildThemeBackground(Color primaryColor) {
     return Stack(
       children: [
         Container(
@@ -210,8 +222,8 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
               center: Alignment(0, -0.4),
               radius: 1.5,
               colors: [
-                ProMaxColors.stitchCozyCardBg,
-                ProMaxColors.stitchCozyBg,
+                ProMaxColors.stitchCardBg,
+                ProMaxColors.stitchBackground,
               ],
             ),
           ),
@@ -226,7 +238,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
               height: 400,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.05),
+                color: primaryColor.withValues(alpha: 0.05),
               ),
             ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(
               begin: const Offset(0.8, 0.8),
@@ -239,266 +251,201 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     );
   }
 
-  Widget _buildCoverSection(AudioHandler handler) {
+  Widget _buildVinylCover(AudioHandler handler, Color primaryColor) {
     return StreamBuilder<PlaybackState>(
       stream: handler.playbackState,
       builder: (context, stateSnap) {
-        final playing = stateSnap.data?.playing ?? false;
-        
-        return StreamBuilder<Duration>(
-          stream: AudioService.position,
-          builder: (context, posSnap) {
-            final position = posSnap.data ?? Duration.zero;
-            final duration = handler.mediaItem.value?.duration ?? Duration(seconds: _displayItem.duration);
-            final totalSeconds = duration.inSeconds > 0 ? duration.inSeconds : 1;
-            final startSec = (handler.mediaItem.value?.extras?['startTime'] ?? _displayItem.startTime).clamp(0, totalSeconds);
-            var endSec = (handler.mediaItem.value?.extras?['endTime'] ?? _displayItem.endTime).clamp(0, totalSeconds);
-            if (endSec <= startSec) {
-              endSec = totalSeconds;
-            }
-            final rangeSeconds = (endSec - startSec).clamp(1, totalSeconds);
-            final effectiveSeconds = (_isDragging ? (_dragValue ?? position.inSeconds.toDouble()) : position.inSeconds.toDouble()).clamp(startSec.toDouble(), endSec.toDouble());
-            final progress = ((effectiveSeconds - startSec) / rangeSeconds).clamp(0.0, 1.0);
-
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Stack(
-                    alignment: Alignment.center,
-                    clipBehavior: Clip.none,
-                    children: [
-                      GestureDetector(
-                        onPanStart: (details) => _handleArcDrag(details.localPosition, startSec, endSec),
-                        onPanUpdate: (details) => _handleArcDrag(details.localPosition, startSec, endSec),
-                        onPanEnd: (_) => _commitArcDrag(handler, startSec, endSec),
-                        child: SizedBox(
-                          width: 360,
-                          height: 180,
-                          child: CustomPaint(
-                            painter: ProgressArcPainter(
-                              progress: progress.clamp(0.0, 1.0),
-                              color: ProMaxColors.stitchCozyAccent,
-                              trackColor: Colors.white.withValues(alpha: 0.08),
-                              trackWidth: 2,
-                              progressWidth: 3,
-                              ornamentColor: Colors.white.withValues(alpha: 0.12),
-                              ornamentWidth: 2,
-                              ornamentRadiusScale: 1.18,
-                            ),
-                          ),
-                        ),
+        return AnimatedBuilder(
+          animation: _breathingController,
+          builder: (context, child) {
+            double spread = 10 + (20 * _breathingController.value);
+            Color shadowColor = primaryColor.withValues(alpha: 0.15 + (0.1 * _breathingController.value));
+            
+            return Hero(
+              tag: widget.heroCoverTag,
+              child: RotationTransition(
+                turns: _coverRotationController,
+                child: Container(
+                  width: 290, height: 290,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        blurRadius: 40,
+                        offset: const Offset(0, 20),
                       ),
-
-                      Hero(
-                        tag: widget.heroCoverTag,
-                        child: RotationTransition(
-                          turns: _coverRotationController,
-                          child: Container(
-                            width: 250,
-                            height: 250,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.5),
-                                  blurRadius: 30,
-                                  offset: const Offset(0, 15),
-                                ),
-                              ],
-                            ),
-                            child: ClipOval(
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  Image.network(
-                                    handler.mediaItem.value?.artUri?.toString() ?? _displayItem.coverUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, e, s) => Container(color: ProMaxColors.stitchCozyCardBg),
-                                  ),
-                                  Center(
-                                    child: Container(
-                                      width: 36,
-                                      height: 36,
-                                      decoration: BoxDecoration(
-                                        color: ProMaxColors.stitchCozyBg.withValues(alpha: 0.8),
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white12, width: 2),
-                                      ),
-                                      child: Center(
-                                        child: Container(
-                                          width: 8, height: 8, 
-                                          decoration: const BoxDecoration(color: Colors.white24, shape: BoxShape.circle),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ).animate(target: playing ? 1 : 0, onPlay: (c) => c.repeat(reverse: true))
-                           .scale(begin: const Offset(1, 1), end: const Offset(1.02, 1.02), duration: 5.seconds, curve: Curves.easeInOut),
-                        ),
-                      ),
-                      
-                      // time labels moved outside arc to match design
+                      // Breathing Glow (Theme Color)
+                      BoxShadow(
+                        color: shadowColor,
+                        blurRadius: spread,
+                        spreadRadius: 0,
+                      )
                     ],
                   ),
-                  SizedBox(
-                    width: 320,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            _formatDuration(Duration(seconds: (effectiveSeconds - startSec).toInt())),
-                            style: GoogleFonts.manrope(color: ProMaxColors.stitchCozyTextMuted, fontSize: 12, fontWeight: FontWeight.bold),
+                  child: ClipOval(
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.network(
+                          handler.mediaItem.value?.artUri?.toString() ?? _displayItem.coverUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, e, s) => Container(color: ProMaxColors.stitchCardBg),
+                        ),
+                        // Vinyl Hole
+                        Center(
+                          child: Container(
+                            width: 50, height: 50,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF140F0D).withValues(alpha: 0.85), // Dark
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white10, width: 1),
+                            ),
+                            child: Center(
+                              child: Container(
+                                width: 12, height: 12,
+                                decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle),
+                              ),
+                            ),
                           ),
-                          Text(
-                            _formatDuration(Duration(seconds: rangeSeconds)),
-                            style: GoogleFonts.manrope(color: ProMaxColors.stitchCozyTextMuted, fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
             );
-          },
+          }
         );
       }
     );
   }
 
-  Widget _buildTrackInfo(MediaItem? item) {
-    final category = item?.extras?['category']?.toString();
+  Widget _buildTrackInfo(MediaItem? item, Color primaryColor) {
+    final title = item?.title ?? _displayItem.title;
     final artist = item?.artist ?? _displayItem.artist;
-    final badge = (category != null && category.isNotEmpty) ? category : "未分类";
-    final subtitle = artist.isNotEmpty ? artist : "未知UP主";
+    final category = item?.extras?['category']?.toString();
+    
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          width: double.infinity,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Hero(
-              tag: widget.heroTitleTag,
-              child: Text(
-                item?.title ?? _displayItem.title,
-                style: GoogleFonts.manrope(
-                  color: ProMaxColors.stitchCozyTextLight,
-                  fontSize: 30,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.5,
-                ),
-              ),
+         Hero(
+            tag: widget.heroTitleTag,
+            child: SizedBox(
+               width: double.infinity,
+               child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.manrope(color: ProMaxColors.stitchTextLight, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                  maxLines: 2, overflow: TextOverflow.ellipsis,
+               ),
             ),
-          ),
-        ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.1, end: 0),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.2)),
-              ),
-              child: Text(
-                badge,
-                style: TextStyle(
-                  color: ProMaxColors.stitchCozyAccent,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: ProMaxColors.stitchCozyTextMuted,
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ).animate().fadeIn(duration: 600.ms, delay: 200.ms),
+         ).animate().fadeIn(duration: 800.ms).moveY(begin: 10, end: 0),
+         
+         const SizedBox(height: 10),
+         
+         Row(
+           mainAxisAlignment: MainAxisAlignment.center,
+           children: [
+             if (category != null && category.isNotEmpty)
+               Container(
+                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                 margin: const EdgeInsets.only(right: 8),
+                 decoration: BoxDecoration(
+                   color: primaryColor.withValues(alpha: 0.1),
+                   borderRadius: BorderRadius.circular(12),
+                   border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
+                 ),
+                 child: Text(
+                   category,
+                   style: TextStyle(color: primaryColor, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                 ),
+               ),
+               
+             Text(
+                 "$artist · 夜眠系列", 
+                 style: const TextStyle(color: ProMaxColors.stitchTextMuted, fontSize: 14, fontWeight: FontWeight.w500, letterSpacing: 0.5),
+             ).animate().fadeIn(delay: 200.ms, duration: 800.ms),
+           ],
+         )
       ],
     );
   }
 
-  void _handleArcDrag(Offset localPos, int startSec, int endSec) {
-    const double size = 310;
-    final center = const Offset(size / 2, size / 2);
-    final dx = localPos.dx - center.dx;
-    final dy = localPos.dy - center.dy;
-    final r = math.sqrt(dx * dx + dy * dy);
-    if (r < 90) return; // avoid jumps when dragging near center
-
-    double angle = math.atan2(dy, dx);
-    if (angle < 0) angle += math.pi * 2;
-    final progress = _angleToArcProgress(angle);
-
-    final totalSeconds = (endSec - startSec).clamp(1, 24 * 60 * 60);
-    setState(() {
-      _isDragging = true;
-      _dragValue = (startSec + (progress * totalSeconds)).clamp(startSec, endSec).toDouble();
-    });
-  }
-
-  double _angleToArcProgress(double angle) {
-    final start = math.pi * 0.8;
-    final sweep = math.pi * 1.4;
-    final end = start + sweep;
-    final twoPi = math.pi * 2;
-
-    // Arc wraps past 2π, so valid region is [start, 2π) U [0, end-2π]
-    final wraps = end > twoPi;
-    final inArc = wraps
-        ? (angle >= start || angle <= (end - twoPi))
-        : (angle >= start && angle <= end);
-
-    double clampedAngle;
-    if (inArc) {
-      clampedAngle = angle;
-      if (wraps && angle <= (end - twoPi)) {
-        clampedAngle = angle + twoPi;
+  Widget _buildProgressBar(AudioHandler handler, Color primaryColor) {
+    return StreamBuilder<Duration>(
+      stream: AudioService.position,
+      builder: (context, posSnap) {
+        final position = posSnap.data ?? Duration.zero;
+        final duration = handler.mediaItem.value?.duration ?? Duration(seconds: _displayItem.duration);
+        final totalSeconds = duration.inSeconds > 0 ? duration.inSeconds : 1;
+        
+        final startSec = (handler.mediaItem.value?.extras?['startTime'] ?? _displayItem.startTime).clamp(0, totalSeconds);
+        var endSec = (handler.mediaItem.value?.extras?['endTime'] ?? _displayItem.endTime).clamp(0, totalSeconds);
+        if (endSec <= startSec) endSec = totalSeconds;
+        
+        final rangeSeconds = (endSec - startSec).clamp(1, totalSeconds);
+        final effectiveSeconds = (_isDraggingSlider ? (_sliderValue ?? position.inSeconds.toDouble()) : position.inSeconds.toDouble()).clamp(startSec.toDouble(), endSec.toDouble());
+        final progress = ((effectiveSeconds - startSec) / rangeSeconds).clamp(0.0, 1.0);
+        
+        return Column(
+          children: [
+            SizedBox(
+              height: 20,
+              child: SliderTheme(
+                data: SliderThemeData(
+                  trackHeight: 4,
+                  activeTrackColor: primaryColor,
+                  inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
+                  thumbColor: primaryColor,
+                  // Custom Glowing Thumb
+                  thumbShape: GlowingSliderThumbShape(color: primaryColor), 
+                  overlayColor: primaryColor.withValues(alpha: 0.2),
+                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+                  trackShape: const RoundedRectSliderTrackShape(),
+                ),
+                child: Slider(
+                  value: progress,
+                  onChanged: (v) {
+                    setState(() {
+                      _isDraggingSlider = true;
+                      _sliderValue = startSec + (v * rangeSeconds);
+                    });
+                  },
+                  onChangeEnd: (v) {
+                     final targetSec = startSec + (v * rangeSeconds);
+                     handler.seek(Duration(seconds: targetSec.toInt()));
+                     setState(() {
+                       _isDraggingSlider = false;
+                       _sliderValue = null;
+                     });
+                  },
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _formatDuration(Duration(seconds: (effectiveSeconds - startSec).toInt())),
+                    style: GoogleFonts.manrope(color: primaryColor.withValues(alpha: 0.7), fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+                  ),
+                  Text(
+                    _formatDuration(Duration(seconds: rangeSeconds)),
+                    style: GoogleFonts.manrope(color: Colors.white38, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
       }
-    } else {
-      // Clamp to nearest endpoint to avoid jumping across the start
-      final startDist = _angularDistance(angle, start);
-      final endAngle = wraps ? (end - twoPi) : end;
-      final endDist = _angularDistance(angle, endAngle);
-      clampedAngle = (startDist <= endDist) ? start : end;
-    }
-
-    return ((clampedAngle - start) / sweep).clamp(0.0, 1.0);
+    );
   }
 
-  double _angularDistance(double a, double b) {
-    final diff = (a - b).abs();
-    final twoPi = math.pi * 2;
-    return diff > math.pi ? twoPi - diff : diff;
-  }
-
-  void _commitArcDrag(AudioHandler handler, int startSec, int endSec) {
-    if (_dragValue != null) {
-      handler.seek(Duration(seconds: _dragValue!.toInt()));
-    }
-    setState(() {
-      _isDragging = false;
-      _dragValue = null;
-    });
-  }
-
-  Widget _buildMainControls(AudioHandler handler) {
+  Widget _buildMainControls(AudioHandler handler, Color primaryColor) {
     return StreamBuilder<PlaybackState>(
       stream: handler.playbackState,
       builder: (context, snapshot) {
@@ -507,36 +454,36 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             IconButton(
-              icon: const Icon(Icons.skip_previous_rounded, color: ProMaxColors.stitchCozyTextMuted, size: 40),
+              icon: const Icon(Icons.skip_previous_rounded, color: ProMaxColors.stitchTextLight, size: 40),
               onPressed: () => handler.skipToPrevious(),
             ),
             const SizedBox(width: 40),
             GestureDetector(
               onTap: () => playing ? handler.pause() : handler.play(),
               child: Container(
-                width: 92,
-                height: 92,
-                decoration: const BoxDecoration(
-                  color: ProMaxColors.stitchCozyAccent,
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: primaryColor,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Color(0x66D98D4F),
-                      blurRadius: 30,
-                      offset: Offset(0, 10),
+                      color: primaryColor.withValues(alpha: 0.4),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
                     )
                   ],
                 ),
                 child: Icon(
                   playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                  size: 52,
-                  color: ProMaxColors.stitchCozyBg,
+                  size: 40,
+                  color: const Color(0xFF140F0D), // Dark icon on bright background
                 ),
               ),
             ),
             const SizedBox(width: 40),
             IconButton(
-              icon: const Icon(Icons.skip_next_rounded, color: ProMaxColors.stitchCozyTextMuted, size: 40),
+              icon: const Icon(Icons.skip_next_rounded, color: ProMaxColors.stitchTextLight, size: 40),
               onPressed: () => handler.skipToNext(),
             ),
           ],
@@ -545,108 +492,106 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     );
   }
 
-  Widget _buildBottomActionPanel(BuildContext context, AudioHandler handler) {
+  Widget _buildBottomPillBar(BuildContext context, AudioHandler handler, Color primaryColor) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 18),
+      height: 64,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: ProMaxColors.stitchCozyCardBg.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
+        color: const Color(0xFF130E0C),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildModeButton(handler),
-          _buildActionIcon(Icons.queue_music_rounded, true, false, () => _showPlaylistSheet(context, audioHandler: handler)),
-          _buildSleepButton(handler, () => _showSleepTimerDialog(context, audioHandler: handler)),
+           // 1. Loop Mode
+           if (handler is AudioPlayerHandler)
+             StreamBuilder<bool>(
+               stream: (handler as AudioPlayerHandler).shuffleModeStream,
+               initialData: (handler as AudioPlayerHandler).isShuffleEnabled,
+               builder: (context, shuffleSnap) {
+                 return StreamBuilder<AudioServiceRepeatMode>(
+                   stream: (handler as AudioPlayerHandler).repeatModeStream,
+                   initialData: AudioServiceRepeatMode.none,
+                   builder: (context, repeatSnap) {
+                     final shuffle = shuffleSnap.data ?? false;
+                     final repeat = repeatSnap.data ?? AudioServiceRepeatMode.none;
+                     
+                     IconData icon = Icons.repeat_rounded;
+                     bool isActive = false;
+                     
+                     if (shuffle) {
+                        icon = Icons.shuffle_rounded;
+                        isActive = true;
+                     } else if (repeat == AudioServiceRepeatMode.one) {
+                        icon = Icons.repeat_one_rounded;
+                        isActive = true;
+                     } else if (repeat == AudioServiceRepeatMode.all) {
+                        icon = Icons.repeat_rounded;
+                        isActive = true;
+                     }
+                     
+                     final color = isActive ? primaryColor : ProMaxColors.stitchTextLight;
+                     
+                     return IconButton(
+                       icon: Icon(icon, color: color),
+                       onPressed: () => (handler as AudioPlayerHandler).cyclePlayMode(),
+                     );
+                   }
+                 );
+               }
+             )
+           else
+              IconButton(icon: const Icon(Icons.repeat_rounded, color: Colors.white30), onPressed: () {}),
+           
+           // 2. Playlist
+           IconButton(
+             icon: const Icon(Icons.queue_music_rounded, color: ProMaxColors.stitchTextLight), 
+             onPressed: () => _showPlaylistSheet(context, audioHandler: handler),
+           ),
+           
+           // 3. Sleep Timer
+           StreamBuilder<int>(
+             stream: Stream.periodic(const Duration(seconds: 1), (i) => i),
+             builder: (context, _) {
+                String? timerText;
+                bool active = false;
+                if (handler is AudioPlayerHandler) {
+                   final end = handler.sleepTimerEnd;
+                   final now = DateTime.now();
+                   if (end != null && end.isAfter(now)) {
+                      active = true;
+                      final d = end.difference(now);
+                      timerText = "${d.inMinutes}:${(d.inSeconds % 60).toString().padLeft(2, '0')}";
+                   }
+                }
+                
+                if (active && timerText != null) {
+                   return GestureDetector(
+                     onTap: () => _showSleepTimerDialog(context, audioHandler: handler),
+                     child: Container(
+                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                       decoration: BoxDecoration(
+                         color: primaryColor.withValues(alpha: 0.1),
+                         borderRadius: BorderRadius.circular(16),
+                         border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
+                       ),
+                       child: Text(
+                         timerText, 
+                         style: TextStyle(color: primaryColor, fontSize: 13, fontWeight: FontWeight.bold)
+                       ),
+                     ),
+                   );
+                }
+                
+                return IconButton(
+                   icon: const Icon(Icons.nights_stay_rounded, color: ProMaxColors.stitchTextLight), 
+                   onPressed: () => _showSleepTimerDialog(context, audioHandler: handler),
+                );
+             }
+           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildActionIcon(IconData icon, bool hasIndicator, bool isActive, VoidCallback onTap) {
-    final color = isActive ? ProMaxColors.stitchCozyAccent : ProMaxColors.stitchCozyTextMuted;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color, size: 24),
-            if (hasIndicator) ...[
-              const SizedBox(height: 6),
-              Container(width: 4, height: 4, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-            ] else
-              const SizedBox(height: 10),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModeButton(AudioHandler handler) {
-    if (handler is! AudioPlayerHandler) {
-      return _buildActionIcon(Icons.shuffle_rounded, false, false, () {});
-    }
-    return StreamBuilder<bool>(
-      stream: handler.shuffleModeStream,
-      initialData: handler.isShuffleEnabled,
-      builder: (context, shuffleSnap) {
-        return StreamBuilder<AudioServiceRepeatMode>(
-          stream: handler.repeatModeStream,
-          initialData: AudioServiceRepeatMode.none,
-          builder: (context, repeatSnap) {
-            final shuffleEnabled = shuffleSnap.data ?? false;
-            final repeatMode = repeatSnap.data ?? AudioServiceRepeatMode.none;
-            final icon = shuffleEnabled
-              ? Icons.shuffle_rounded
-              : (repeatMode == AudioServiceRepeatMode.one ? Icons.repeat_one_rounded : Icons.repeat_rounded);
-            final active = shuffleEnabled || repeatMode != AudioServiceRepeatMode.none;
-            return _buildActionIcon(icon, false, active, () => handler.cyclePlayMode());
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildSleepButton(AudioHandler handler, VoidCallback onTap) {
-    if (handler is! AudioPlayerHandler) {
-      return _buildActionIcon(Icons.nights_stay_rounded, false, false, onTap);
-    }
-
-    return StreamBuilder<int>(
-      stream: Stream.periodic(const Duration(seconds: 1), (i) => i),
-      builder: (context, _) {
-        final end = handler.sleepTimerEnd;
-        final now = DateTime.now();
-        Duration? remaining;
-        if (end != null && end.isAfter(now)) {
-          remaining = end.difference(now);
-        }
-        final active = remaining != null;
-        return InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.nights_stay_rounded, color: active ? ProMaxColors.stitchCozyAccent : ProMaxColors.stitchCozyTextMuted, size: 22),
-                if (active) ...[
-                  const SizedBox(width: 6),
-                  Text(
-                    _formatDuration(remaining!),
-                    style: TextStyle(color: ProMaxColors.stitchCozyAccent, fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 
@@ -675,176 +620,120 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   }
 }
 
-class ProgressArcPainter extends CustomPainter {
-  final double progress;
+class GlowingSliderThumbShape extends SliderComponentShape {
+  final double enabledThumbRadius;
   final Color color;
-  final Color trackColor;
-  final double trackWidth;
-  final double progressWidth;
-  final Color ornamentColor;
-  final double ornamentWidth;
-  final double ornamentRadiusScale;
 
-  ProgressArcPainter({
-    required this.progress,
+  const GlowingSliderThumbShape({
+    this.enabledThumbRadius = 8.0,
     required this.color,
-    this.trackColor = const Color(0x14FFFFFF),
-    this.trackWidth = 2,
-    this.progressWidth = 3,
-    this.ornamentColor = const Color(0x14FFFFFF),
-    this.ornamentWidth = 2,
-    this.ornamentRadiusScale = 1.15,
   });
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-    final ornamentRadius = radius * ornamentRadiusScale;
-
-    final ornamentPaint = Paint()
-      ..color = ornamentColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = ornamentWidth
-      ..strokeCap = StrokeCap.round;
-
-    // Decorative arc above the progress track
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: ornamentRadius),
-      math.pi * 0.9,
-      math.pi * 0.95,
-      false,
-      ornamentPaint,
-    );
-    
-    final paintBase = Paint()
-      ..color = trackColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = trackWidth
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      math.pi * 0.8, 
-      math.pi * 1.4, 
-      false,
-      paintBase,
-    );
-
-    final paintProgress = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = progressWidth
-      ..strokeCap = StrokeCap.round;
-
-    final double activeSweep = (math.pi * 1.4) * progress;
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      math.pi * 0.8,
-      activeSweep,
-      false,
-      paintProgress,
-    );
-
-    final double thumbAngle = (math.pi * 0.8) + activeSweep;
-    final thumbX = center.dx + radius * math.cos(thumbAngle);
-    final thumbY = center.dy + radius * math.sin(thumbAngle);
-    
-    canvas.drawCircle(Offset(thumbX, thumbY), 6, Paint()..color = color);
-    canvas.drawCircle(
-      Offset(thumbX, thumbY), 
-      12, 
-      Paint()..color = color.withValues(alpha: 0.2)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
-    );
+  Size getPreferredSize(bool isEnabled, bool isDiscrete) {
+    return Size.fromRadius(enabledThumbRadius);
   }
 
   @override
-  bool shouldRepaint(covariant ProgressArcPainter oldDelegate) => oldDelegate.progress != progress;
+  void paint(
+    PaintingContext context,
+    Offset center, {
+    required Animation<double> activationAnimation,
+    required Animation<double> enableAnimation,
+    required bool isDiscrete,
+    required TextPainter labelPainter,
+    required RenderBox parentBox,
+    required SliderThemeData sliderTheme,
+    required TextDirection textDirection,
+    required double value,
+    required double textScaleFactor,
+    required Size sizeWithOverflow,
+  }) {
+    final Canvas canvas = context.canvas;
+    
+    // Glow
+    final Paint glowPaint = Paint()
+      ..color = color.withValues(alpha: 0.5)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+    canvas.drawCircle(center, enabledThumbRadius + 4, glowPaint);
+    
+    // Core (Theme Color for night comfort, no white glare)
+    final Paint thumbPaint = Paint()..color = color;
+    canvas.drawCircle(center, enabledThumbRadius, thumbPaint);
+    
+    // Inner Dot (Dark to mimic eye pupil or focus point)
+    final Paint innerDocPaint = Paint()..color = const Color(0xFF140F0D);
+    canvas.drawCircle(center, enabledThumbRadius * 0.4, innerDocPaint);
+  }
 }
 
-// --- High-Fidelity Playlist Sheet ---
 class _PlaylistSheet extends StatelessWidget {
   final AudioHandler handler;
   const _PlaylistSheet({required this.handler});
 
   @override
   Widget build(BuildContext context) {
+    // Explicitly use Canonical StitchPrimary (Amber Gold)
+    const primaryColor = ProMaxColors.stitchPrimary;
+    
     return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
+      height: MediaQuery.of(context).size.height * 0.75,
       decoration: const BoxDecoration(
-        color: Color(0xFF140F0D),
+        color: ProMaxColors.stitchBackground,
         borderRadius: BorderRadius.vertical(top: Radius.circular(36)),
       ),
       child: Column(
         children: [
-          // Drag handle
           Container(
             margin: const EdgeInsets.symmetric(vertical: 12),
-            width: 48,
-            height: 6,
+            width: 48, height: 6,
             decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(3)),
           ),
-          
-          // Header section
           Padding(
-            padding: const EdgeInsets.fromLTRB(28, 8, 28, 16),
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          "播放列表",
-                          style: GoogleFonts.manrope(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: -0.5),
-                        ),
-                        const SizedBox(width: 10),
-                        StreamBuilder<List<MediaItem>>(
-                          stream: handler.queue,
-                          builder: (context, snap) => Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(color: const Color(0xFF2D241E), borderRadius: BorderRadius.circular(10)),
-                            child: Text("${snap.data?.length ?? 0}", style: const TextStyle(color: ProMaxColors.stitchCozyAccent, fontSize: 12, fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text("当前队列", style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 13, fontWeight: FontWeight.w500)),
-                  ],
+                Text("播放列表", style: GoogleFonts.manrope(color: ProMaxColors.stitchTextLight, fontSize: 22, fontWeight: FontWeight.w900)),
+                const SizedBox(width: 8),
+                StreamBuilder<List<MediaItem>>(
+                  stream: handler.queue,
+                  builder: (context, snap) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(color: const Color(0xFF2D241E), borderRadius: BorderRadius.circular(12)),
+                    child: Text("${snap.data?.length ?? 0}", style: const TextStyle(color: primaryColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
                 ),
+                const Spacer(),
                 TextButton.icon(
                   onPressed: () {
                     if (handler is AudioPlayerHandler) (handler as AudioPlayerHandler).clearQueue();
                     Navigator.pop(context);
                   },
-                  icon: const Icon(Icons.delete_outline_rounded, size: 16),
-                  label: const Text("清空列表", style: TextStyle(fontWeight: FontWeight.bold)),
+                  icon: const Icon(Icons.delete_outline_rounded, size: 14),
+                  label: const Text("清空列表", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                   style: TextButton.styleFrom(
-                    foregroundColor: Colors.white38,
+                    foregroundColor: ProMaxColors.stitchTextMuted,
                     backgroundColor: const Color(0xFF2D241E),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
                 ),
               ],
             ),
           ),
-          
-          // Sorting Hint
           Padding(
-            padding: const EdgeInsets.only(left: 28, bottom: 18),
+            padding: const EdgeInsets.fromLTRB(24, 4, 24, 16),
             child: Row(
               children: [
-                const Icon(Icons.drag_indicator_rounded, color: ProMaxColors.stitchCozyAccent, size: 16),
-                const SizedBox(width: 8),
-                Text("长按并拖动以排序", style: TextStyle(color: Colors.white.withValues(alpha: 0.25), fontSize: 12, fontWeight: FontWeight.w500)),
+                Text("当前队列", style: TextStyle(color: ProMaxColors.stitchTextLight.withValues(alpha: 0.4), fontSize: 12, fontWeight: FontWeight.w500)),
+                const SizedBox(width: 12),
+                const Icon(Icons.drag_indicator_rounded, color: primaryColor, size: 12),
+                const SizedBox(width: 4),
+                Text("长按并拖动以排序", style: TextStyle(color: ProMaxColors.stitchTextLight.withValues(alpha: 0.25), fontSize: 10, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
-          
           Expanded(
             child: StreamBuilder<List<MediaItem>>(
               stream: handler.queue,
@@ -859,24 +748,16 @@ class _PlaylistSheet extends StatelessWidget {
                       builder: (context, posSnap) {
                         final pos = posSnap.data ?? Duration.zero;
                         return ReorderableListView.builder(
+                          padding: const EdgeInsets.only(bottom: 40),
                           itemCount: queue.length,
                           onReorder: (oldIndex, newIndex) {
                             if (newIndex > oldIndex) newIndex -= 1;
-                            if (handler is AudioPlayerHandler) {
-                              (handler as AudioPlayerHandler).reorderQueue(oldIndex, newIndex);
-                            }
+                            if (handler is AudioPlayerHandler) (handler as AudioPlayerHandler).reorderQueue(oldIndex, newIndex);
                           },
                           itemBuilder: (context, index) {
                             final item = queue[index];
                             final isPlaying = playingId == item.id;
-                            return _buildPlaylistItem(
-                              context,
-                              item,
-                              index,
-                              isPlaying,
-                              currentPosition: isPlaying ? pos : null,
-                              key: ValueKey(item.id),
-                            );
+                            return _buildPlaylistItem(context, item, index, isPlaying, currentPosition: isPlaying ? pos : null, key: ValueKey(item.id), primaryColor: primaryColor);
                           },
                         );
                       },
@@ -891,91 +772,62 @@ class _PlaylistSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildPlaylistItem(
-    BuildContext context,
-    MediaItem item,
-    int index,
-    bool isPlaying, {
-    required Key key,
-    Duration? currentPosition,
-  }) {
+  Widget _buildPlaylistItem(BuildContext context, MediaItem item, int index, bool isPlaying, {required Key key, Duration? currentPosition, required Color primaryColor}) {
     final String indexStr = (index + 1).toString().padLeft(2, '0');
     
     if (isPlaying) {
       return Container(
         key: key,
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(4),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              ProMaxColors.stitchCozyAccent.withValues(alpha: 0.2),
-              ProMaxColors.stitchCozyAccent.withValues(alpha: 0.05),
-            ],
-          ),
-          border: Border.all(color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.3), width: 1),
+          color: const Color(0xFF2D241E), // Updated card bg
+          borderRadius: BorderRadius.circular(32),
+          border: Border.all(color: primaryColor.withValues(alpha: 0.6), width: 1),
+          boxShadow: [
+             BoxShadow(color: primaryColor.withValues(alpha: 0.15), blurRadius: 12, offset: const Offset(0, 4)),
+          ]
         ),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1A120B),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: InkWell(
-            onTap: () {
-              if (handler is AudioPlayerHandler) {
-                (handler as AudioPlayerHandler).skipToQueueIndex(index);
-              }
-            },
+        child: InkWell(
+          onTap: () { if (handler is AudioPlayerHandler) (handler as AudioPlayerHandler).skipToQueueIndex(index); },
+          borderRadius: BorderRadius.circular(32),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
             child: Row(
               children: [
-                // Rotating Visualizer / Icon
                 Container(
-                  width: 52,
-                  height: 52,
-                  decoration: const BoxDecoration(color: ProMaxColors.stitchCozyAccent, shape: BoxShape.circle),
-                  child: const Icon(Icons.graphic_eq_rounded, color: Color(0xFF140F0D), size: 22),
+                  width: 50, height: 50,
+                  decoration: BoxDecoration(color: primaryColor, shape: BoxShape.circle),
+                  child: const Icon(Icons.graphic_eq_rounded, color: Color(0xFF140F0D), size: 24),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        item.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.manrope(color: ProMaxColors.stitchCozyAccent, fontSize: 16, fontWeight: FontWeight.w900),
-                      ),
-                      const SizedBox(height: 4),
+                      Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.manrope(color: primaryColor, fontSize: 15, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 2),
                       Row(
                         children: [
-                          const Icon(Icons.play_arrow_rounded, color: ProMaxColors.stitchCozyAccent, size: 14),
+                          Icon(Icons.play_arrow_rounded, color: primaryColor, size: 12),
                           const SizedBox(width: 4),
-                          const Text("播放中", style: TextStyle(color: ProMaxColors.stitchCozyAccent, fontSize: 12, fontWeight: FontWeight.bold)),
-                          const Spacer(),
-                          Text("${_formatDurationStr(currentPosition)} / ${_formatDurationStr(item.duration)}", 
-                            style: TextStyle(color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.5)
-                          ),
+                          Text("播放中", style: TextStyle(color: primaryColor, fontSize: 11, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ],
                   ),
                 ),
+                Text("${_formatDurationStr(currentPosition)} / ${_formatDurationStr(item.duration)}", 
+                  style: TextStyle(color: primaryColor.withValues(alpha: 0.9), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                 const SizedBox(width: 10),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded, color: Colors.white30, size: 22),
-                  onPressed: () {
-                    if (handler is AudioPlayerHandler) {
-                      (handler as AudioPlayerHandler).removeQueueItemById(item.id);
-                    }
-                  },
+                  icon: Icon(Icons.close_rounded, color: primaryColor.withValues(alpha: 0.5), size: 20),
+                  onPressed: () { if (handler is AudioPlayerHandler) (handler as AudioPlayerHandler).removeQueueItemById(item.id); },
+                  padding: EdgeInsets.zero, constraints: const BoxConstraints(),
                 ),
-                const SizedBox(width: 4),
-                const Icon(Icons.drag_handle_rounded, color: ProMaxColors.stitchCozyAccent, size: 24),
+                const SizedBox(width: 12),
+                Icon(Icons.drag_handle_rounded, color: primaryColor, size: 20),
+                const SizedBox(width: 8),
               ],
             ),
           ),
@@ -985,62 +837,50 @@ class _PlaylistSheet extends StatelessWidget {
 
     return Container(
       key: key,
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(2),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        color: const Color(0xFF1E1815), // Very dark coffee
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
       ),
       child: InkWell(
-        onTap: () {
-          if (handler is AudioPlayerHandler) {
-            (handler as AudioPlayerHandler).skipToQueueIndex(index);
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1A120B),
-            borderRadius: BorderRadius.circular(24),
-          ),
+        onTap: () { if (handler is AudioPlayerHandler) (handler as AudioPlayerHandler).skipToQueueIndex(index); },
+        borderRadius: BorderRadius.circular(32),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
           child: Row(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1D1612),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.2), width: 1),
+               Container(
+                  width: 46, height: 46,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF28201C),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                  ),
+                  child: Center(child: Text(indexStr, style: const TextStyle(color: Color(0xFFE6B874), fontWeight: FontWeight.bold, fontSize: 13))), // Muted gold index
+               ),
+               const SizedBox(width: 12),
+               Expanded(
+                 child: Column(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                     Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                       style: GoogleFonts.manrope(color: Colors.white.withValues(alpha: 0.9), fontSize: 14, fontWeight: FontWeight.w600)),
+                     const SizedBox(height: 2),
+                     Text(item.artist ?? "未知作者", style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 11)),
+                   ],
+                 ),
+               ),
+               Text(_formatDurationStr(item.duration), style: const TextStyle(color: Colors.white24, fontSize: 11, fontWeight: FontWeight.bold)),
+               const SizedBox(width: 10),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Colors.white24, size: 20),
+                  onPressed: () { if (handler is AudioPlayerHandler) (handler as AudioPlayerHandler).removeQueueItemById(item.id); },
+                  padding: EdgeInsets.zero, constraints: const BoxConstraints(),
                 ),
-                child: Center(child: Text(indexStr, style: const TextStyle(color: Colors.white38, fontWeight: FontWeight.w900, fontSize: 13))),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.manrope(color: Colors.white.withValues(alpha: 0.8), fontSize: 15, fontWeight: FontWeight.w700)
-                    ),
-                    const SizedBox(height: 2),
-                    Text(item.artist ?? "未知作者", style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12)),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(_formatDurationStr(item.duration), style: const TextStyle(color: Colors.white10, fontSize: 12, fontWeight: FontWeight.bold)),
-              const SizedBox(width: 20),
-              IconButton(
-                icon: Icon(Icons.close_rounded, color: Colors.white.withValues(alpha: 0.25), size: 22),
-                onPressed: () {
-                  if (handler is AudioPlayerHandler) {
-                    (handler as AudioPlayerHandler).removeQueueItemById(item.id);
-                  }
-                },
-              ),
-              const SizedBox(width: 4),
-              const Icon(Icons.drag_handle_rounded, color: ProMaxColors.stitchCozyAccent, size: 24),
+                const SizedBox(width: 12),
+                const Icon(Icons.drag_handle_rounded, color: Colors.white24, size: 20),
+                const SizedBox(width: 8),
             ],
           ),
         ),
@@ -1056,7 +896,6 @@ class _PlaylistSheet extends StatelessWidget {
   }
 }
 
-// --- High-Fidelity Sleep Timer Sheet ---
 class _SleepTimerSheet extends StatefulWidget {
   final AudioHandler handler;
   const _SleepTimerSheet({required this.handler});
@@ -1069,7 +908,7 @@ class _SleepTimerSheetState extends State<_SleepTimerSheet> {
   int _selectedMinutes = 30;
   double _customValue = 30;
   bool _fadeOut = true;
-  bool _stopAtEnd = false;
+  bool _isCustomMode = false;
 
   @override
   void initState() {
@@ -1077,146 +916,106 @@ class _SleepTimerSheetState extends State<_SleepTimerSheet> {
     if (widget.handler is AudioPlayerHandler) {
       final h = widget.handler as AudioPlayerHandler;
       _fadeOut = h.fadeOutEnabled;
-      _stopAtEnd = h.stopAtEndEnabled;
+      // Initialize state based on current timer (if running)
+      // For now default to 30 or 0
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Explicitly use Canonical StitchPrimary (Amber Gold)
+    const primaryColor = ProMaxColors.stitchPrimary;
+    
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
-      decoration: const BoxDecoration(
-        color: Color(0xFF140F0D),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(44)),
-      ),
+      // Use Canonical StitchBackground
+      decoration: const BoxDecoration(color: ProMaxColors.stitchBackground, borderRadius: BorderRadius.vertical(top: Radius.circular(44))),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(width: 48, height: 6, decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(3))),
+          Container(width: 48, height: 6, decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(3)),
+          ),
           const SizedBox(height: 22),
-          
           const Text("睡眠定时", style: TextStyle(color: Colors.white38, fontSize: 14, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.nights_stay_rounded, color: Color(0xFFEE8C2B), size: 30),
+              const Icon(Icons.nights_stay_rounded, color: primaryColor, size: 30),
               const SizedBox(width: 10),
-              Text(
-                "${_selectedMinutes}分钟后停止",
-                style: GoogleFonts.manrope(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900),
-              ),
+              // If custom mode, show custom value, else show selected minutes
+              Text("${_isCustomMode ? _customValue.toInt() : _selectedMinutes}分钟后停止", style: GoogleFonts.manrope(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900)),
             ],
           ),
           const SizedBox(height: 24),
-          
           GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 3,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1.8,
+            shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 3, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 2.2,
             children: [
-              _buildPresetBtn("不启用", 0),
-              _buildPresetBtn("15分钟", 15),
-              _buildPresetBtn("30分钟", 30),
-              _buildPresetBtn("60分钟", 60),
-              _buildPresetBtn("90分钟", 90),
-              _buildEditBtn(),
+              _buildPresetBtn("不启用", 0, primaryColor),
+              _buildPresetBtn("15分钟", 15, primaryColor),
+              _buildPresetBtn("30分钟", 30, primaryColor),
+              _buildPresetBtn("60分钟", 60, primaryColor),
+              _buildPresetBtn("90分钟", 90, primaryColor),
+              _buildCustomBtn(primaryColor),
             ],
           ),
-          
           const SizedBox(height: 28),
-          
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("自定义", style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 13, fontWeight: FontWeight.bold)),
-              Text("${_customValue.toInt()} min", style: const TextStyle(color: ProMaxColors.stitchCozyAccent, fontSize: 13, fontWeight: FontWeight.bold)),
-            ],
-          ),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Text("自定义", style: TextStyle(color: _isCustomMode ? primaryColor : Colors.white.withValues(alpha: 0.3), fontSize: 13, fontWeight: FontWeight.bold)),
+            Text("${_customValue.toInt()} min", style: TextStyle(color: _isCustomMode ? primaryColor : Colors.white.withValues(alpha: 0.3), fontSize: 13, fontWeight: FontWeight.bold)),
+          ]),
           const SizedBox(height: 8),
           SliderTheme(
             data: SliderThemeData(
-              trackHeight: 4,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-              activeTrackColor: ProMaxColors.stitchCozyAccent,
-              inactiveTrackColor: Colors.white10,
-              thumbColor: ProMaxColors.stitchCozyAccent,
-              overlayColor: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.1),
+              trackHeight: 4, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+              activeTrackColor: _isCustomMode ? primaryColor : Colors.white10, 
+              inactiveTrackColor: Colors.white10, 
+              thumbColor: _isCustomMode ? primaryColor : Colors.white24,
+              overlayColor: primaryColor.withValues(alpha: 0.1),
             ),
             child: Slider(
-              value: _customValue,
-              min: 0, max: 120,
-              onChanged: (v) => setState(() {
-                _customValue = v;
-                _selectedMinutes = v.toInt();
+              value: _customValue, min: 0, max: 120,
+              onChanged: (v) => setState(() { 
+                _isCustomMode = true; 
+                _customValue = v; 
+                _selectedMinutes = v.toInt(); 
               }),
             ),
           ),
           const SizedBox(height: 8),
-          Row(
-             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-             children: [
-               Text("0", style: TextStyle(color: Colors.white10, fontSize: 10)),
-               Text("120", style: TextStyle(color: Colors.white10, fontSize: 10)),
-             ],
-          ),
-          
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+             Text("0", style: TextStyle(color: Colors.white10, fontSize: 10)),
+             Text("120", style: TextStyle(color: Colors.white10, fontSize: 10)),
+          ]),
           const SizedBox(height: 24),
-          
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1A120B),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-            ),
-            child: Column(
-              children: [
-                _buildToggleRow(Icons.volume_down_rounded, "声音渐弱停止", "结束前最后1分钟音量渐隐", _fadeOut, (v) {
-                  setState(() => _fadeOut = v);
-                }),
-                Container(
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  height: 1,
-                  color: Colors.white.withValues(alpha: 0.05),
-                ),
-                _buildToggleRow(Icons.nights_stay_rounded, "播放到本曲结束停止", "", _stopAtEnd, (v) {
-                  setState(() => _stopAtEnd = v);
-                }),
-              ],
-            ),
+            decoration: BoxDecoration(color: const Color(0xFF1A120B), borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.white.withValues(alpha: 0.05))),
+            child: Column(children: [
+                _buildToggleRow(Icons.volume_down_rounded, "声音渐弱停止", "结束前最后1分钟音量渐隐", _fadeOut, (v) => setState(() => _fadeOut = v), primaryColor),
+            ]),
           ),
-          
           const SizedBox(height: 32),
-          
           SizedBox(
-            width: double.infinity,
-            height: 64,
+            width: double.infinity, height: 54,
             child: ElevatedButton(
               onPressed: () {
                 if (widget.handler is AudioPlayerHandler) {
                    final h = widget.handler as AudioPlayerHandler;
                    h.setFadeOutEnabled(_fadeOut);
-                   h.setSleepTimerAtEnd(_stopAtEnd);
-                   if (_selectedMinutes > 0) {
-                     h.setSleepTimer(Duration(minutes: _selectedMinutes));
-                   } else {
-                     h.cancelSleepTimer();
-                   }
+                   // If custom mode is active, use custom value. Otherwise use preset.
+                   final mins = _isCustomMode ? _customValue.toInt() : _selectedMinutes;
+                   if (mins > 0) h.setSleepTimer(Duration(minutes: mins)); else h.cancelSleepTimer();
                 }
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: ProMaxColors.stitchCozyAccent,
-                foregroundColor: const Color(0xFF140F0D),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-                elevation: 12,
-                shadowColor: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.4),
+                backgroundColor: primaryColor, foregroundColor: const Color(0xFF140F0D),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(27)),
+                elevation: 0, 
               ),
-              child: const Text("确 定", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 4)),
+              child: const Text("确 定", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 2)),
             ),
           ),
         ],
@@ -1224,66 +1023,60 @@ class _SleepTimerSheetState extends State<_SleepTimerSheet> {
     );
   }
 
-  Widget _buildPresetBtn(String label, int mins) {
-    bool isSelected = _selectedMinutes == mins;
+  Widget _buildPresetBtn(String label, int mins, Color primaryColor) {
+    // Only highlight if NOT custom mode AND minutes match
+    bool isSelected = !_isCustomMode && _selectedMinutes == mins;
     return GestureDetector(
-      onTap: () => setState(() {
-        _selectedMinutes = mins;
-        _customValue = mins.toDouble();
+      onTap: () => setState(() { 
+        _isCustomMode = false; 
+        _selectedMinutes = mins; 
+        // Optional: update custom slider to match preset for visual consistency?
+        // _customValue = mins.toDouble(); 
       }),
       child: Container(
         decoration: BoxDecoration(
-          color: isSelected ? ProMaxColors.stitchCozyAccent : const Color(0xFF1D1612),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: isSelected ? [
-            BoxShadow(color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))
-          ] : null,
+          color: isSelected ? primaryColor : ProMaxColors.stitchCardBg, borderRadius: BorderRadius.circular(20),
+          boxShadow: isSelected ? [BoxShadow(color: primaryColor.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))] : null,
         ),
-        child: Center(
-          child: Text(label, style: TextStyle(
-            color: isSelected ? const Color(0xFF140F0D) : Colors.white.withValues(alpha: 0.4), 
-            fontWeight: FontWeight.bold, fontSize: 14)
-          ),
-        ),
+        child: Center(child: Text(label, style: TextStyle(color: isSelected ? const Color(0xFF140F0D) : Colors.white.withValues(alpha: 0.4), fontWeight: FontWeight.bold, fontSize: 13))),
       ),
     );
   }
 
-  Widget _buildEditBtn() {
-    return Container(
-      decoration: BoxDecoration(color: const Color(0xFF1D1612), borderRadius: BorderRadius.circular(20)),
-      child: const Icon(Icons.edit_note_rounded, color: Colors.white24, size: 28),
+  Widget _buildCustomBtn(Color primaryColor) {
+    bool isSelected = _isCustomMode;
+    return GestureDetector(
+      onTap: () => setState(() { 
+        _isCustomMode = true; 
+        // When switching to custom mode, maybe keep current value as start point
+        _selectedMinutes = _customValue.toInt();
+      }),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isSelected ? primaryColor : ProMaxColors.stitchCardBg, 
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: isSelected ? [BoxShadow(color: primaryColor.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))] : null,
+        ),
+        child: Icon(Icons.edit_rounded, color: isSelected ? const Color(0xFF140F0D) : Colors.white24, size: 24),
+      ),
     );
   }
 
-  Widget _buildToggleRow(IconData icon, String title, String sub, bool val, ValueChanged<bool> onChanged) {
+  Widget _buildToggleRow(IconData icon, String title, String sub, bool val, ValueChanged<bool> onChanged, Color primaryColor) {
     return Row(
       children: [
         Container(
-          width: 40, height: 40,
-          decoration: const BoxDecoration(color: Color(0xFF2D241E), shape: BoxShape.circle),
-          child: Icon(icon, color: ProMaxColors.stitchCozyAccent, size: 20),
+          width: 40, height: 40, decoration: const BoxDecoration(color: ProMaxColors.stitchCardBg, shape: BoxShape.circle),
+          child: Icon(icon, color: primaryColor, size: 20),
         ),
         const SizedBox(width: 16),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(title, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
-              if (sub.isNotEmpty) ...[
-                const SizedBox(height: 2),
-                Text(sub, style: TextStyle(color: Colors.white.withValues(alpha: 0.25), fontSize: 11)),
-              ],
-            ],
-          ),
+              if (sub.isNotEmpty) ...[const SizedBox(height: 2), Text(sub, style: TextStyle(color: Colors.white.withValues(alpha: 0.25), fontSize: 11))],
+          ]),
         ),
-        Switch(
-          value: val, 
-          onChanged: onChanged,
-          activeThumbColor: Colors.white,
-          activeTrackColor: ProMaxColors.stitchCozyAccent,
-          inactiveTrackColor: Colors.white10,
-        ),
+        Switch(value: val, onChanged: onChanged, activeThumbColor: Colors.white, activeTrackColor: primaryColor, inactiveTrackColor: Colors.white10),
       ],
     );
   }

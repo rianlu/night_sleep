@@ -46,10 +46,10 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ProMaxColors.stitchFluidBg,
+      backgroundColor: ProMaxColors.stitchCozyBg,
       appBar: _buildAppBar(),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: ProMaxColors.stitchFluidPrimary))
+          ? const Center(child: CircularProgressIndicator(color: ProMaxColors.stitchCozyAccent))
           : _buildBody(),
       floatingActionButton: _buildAddButton(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -58,7 +58,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: ProMaxColors.stitchFluidBg,
+      backgroundColor: ProMaxColors.stitchCozyBg,
       elevation: 0,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
@@ -74,7 +74,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
           onPressed: () => Navigator.pop(context),
           child: const Text(
             "完成",
-            style: TextStyle(color: ProMaxColors.stitchFluidPrimary, fontWeight: FontWeight.bold, fontSize: 16),
+            style: TextStyle(color: ProMaxColors.stitchCozyAccent, fontWeight: FontWeight.bold, fontSize: 16),
           ),
         ),
       ],
@@ -90,7 +90,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
           padding: EdgeInsets.fromLTRB(24, 24, 24, 16),
           child: Text(
             "长按拖动排序，点击铅笔编辑名称",
-            style: TextStyle(color: ProMaxColors.stitchFluidTextMuted, fontSize: 12),
+            style: TextStyle(color: ProMaxColors.stitchCozyTextMuted, fontSize: 12),
           ),
         ),
         Expanded(
@@ -126,10 +126,10 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
       key: ValueKey(category.id),
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isEditing ? ProMaxColors.stitchFluidPrimary.withValues(alpha: 0.1) : ProMaxColors.stitchFluidCoffeeDark,
+        color: isEditing ? ProMaxColors.stitchCozyAccent.withValues(alpha: 0.1) : ProMaxColors.stitchCozyCardBg,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isEditing ? ProMaxColors.stitchFluidPrimary : Colors.white.withValues(alpha: 0.05),
+          color: isEditing ? ProMaxColors.stitchCozyAccent : Colors.white.withValues(alpha: 0.05),
           width: 1,
         ),
       ),
@@ -140,7 +140,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
             if (!isDefault)
               ReorderableDragStartListener(
                 index: index,
-                child: const Icon(Icons.drag_indicator_rounded, color: ProMaxColors.stitchFluidPrimary, size: 28),
+                child: const Icon(Icons.drag_indicator_rounded, color: ProMaxColors.stitchCozyAccent, size: 28),
               )
             else
               const Icon(Icons.lock_rounded, color: Colors.white24, size: 22),
@@ -167,21 +167,21 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                         ),
                         Text(
                           "排序: ${index + 1}", // Could fetch track counts later
-                          style: const TextStyle(color: ProMaxColors.stitchFluidTextMuted, fontSize: 11),
+                          style: const TextStyle(color: ProMaxColors.stitchCozyTextMuted, fontSize: 11),
                         ),
                       ],
                     ),
             ),
             if (isEditing)
               IconButton(
-                icon: const Icon(Icons.check_circle_rounded, color: ProMaxColors.stitchFluidPrimary),
+                icon: const Icon(Icons.check_circle_rounded, color: ProMaxColors.stitchCozyAccent),
                 onPressed: () => _finishEditing(category),
               )
             else
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.edit_rounded, color: ProMaxColors.stitchFluidPrimary, size: 20),
+                    icon: const Icon(Icons.edit_rounded, color: ProMaxColors.stitchCozyAccent, size: 20),
                     onPressed: isDefault ? null : () {
                       setState(() {
                         _editingId = category.id;
@@ -190,7 +190,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                     },
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_rounded, color: ProMaxColors.stitchFluidTextMuted, size: 20),
+                    icon: const Icon(Icons.delete_rounded, color: ProMaxColors.stitchCozyTextMuted, size: 20),
                     onPressed: isDefault ? null : () => _confirmDelete(category),
                   ),
                 ],
@@ -219,13 +219,13 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: ProMaxColors.stitchFluidCoffeeDark,
+        backgroundColor: ProMaxColors.stitchCozyCardBg,
         title: const Text("删除分类", style: TextStyle(color: Colors.white)),
         content: Text("确定要删除 \"${category.name}\" 吗？此操作不会删除其中的曲目。", style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("取消", style: TextStyle(color: ProMaxColors.stitchFluidTextMuted)),
+            child: const Text("取消", style: TextStyle(color: ProMaxColors.stitchCozyTextMuted)),
           ),
           TextButton(
             onPressed: () async {
@@ -249,11 +249,11 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
         icon: const Icon(Icons.add_rounded),
         label: const Text("新建分类", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         style: ElevatedButton.styleFrom(
-          backgroundColor: ProMaxColors.stitchFluidPrimary,
-          foregroundColor: ProMaxColors.stitchFluidBg,
+          backgroundColor: ProMaxColors.stitchCozyAccent,
+          foregroundColor: const Color(0xFF140F0D), // Black
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
           elevation: 8,
-          shadowColor: ProMaxColors.stitchFluidPrimary.withValues(alpha: 0.3),
+          shadowColor: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.3),
         ),
       ),
     );
@@ -277,7 +277,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                 width: MediaQuery.of(context).size.width * 0.85,
                 padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF140F0D),
+                  color: ProMaxColors.stitchCozyCardBg,
                   borderRadius: BorderRadius.circular(40),
                   border: Border.all(color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.2)),
                   boxShadow: [
@@ -295,29 +295,28 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                       "新建分类",
                       style: GoogleFonts.manrope(
                         color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 32),
                     TextField(
                       controller: controller,
                       autofocus: true,
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                      style: const TextStyle(color: ProMaxColors.stitchPrimary, fontSize: 16),
                       textAlign: TextAlign.center,
                       decoration: InputDecoration(
                         hintText: "请输入分类名称",
-                        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.2)),
-                        filled: true,
-                        fillColor: Colors.white.withValues(alpha: 0.03),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 20),
+                        hintStyle: TextStyle(color: ProMaxColors.stitchTextMuted.withValues(alpha: 0.5)),
+                        filled: false,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+                          borderSide: BorderSide(color: ProMaxColors.stitchPrimary.withValues(alpha: 0.3)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(color: ProMaxColors.stitchCozyAccent),
+                          borderSide: const BorderSide(color: ProMaxColors.stitchPrimary),
                         ),
                       ),
                     ),
@@ -326,23 +325,24 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                       children: [
                         Expanded(
                           child: SizedBox(
-                            height: 60,
+                            height: 50,
                             child: ElevatedButton(
                               onPressed: () => Navigator.pop(context),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF2D241E),
-                                foregroundColor: Colors.white,
+                                backgroundColor: const Color(0xFF261E19), // Darker coffee
+                                foregroundColor: ProMaxColors.stitchTextMuted,
                                 elevation: 0,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                                side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
                               ),
-                              child: const Text("取消", style: TextStyle(fontWeight: FontWeight.bold)),
+                              child: const Text("取消"),
                             ),
                           ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: SizedBox(
-                            height: 60,
+                            height: 50,
                             child: ElevatedButton(
                               onPressed: () async {
                                 final name = controller.text.trim();
@@ -358,13 +358,12 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                                 Navigator.pop(context);
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: ProMaxColors.stitchCozyAccent,
+                                backgroundColor: ProMaxColors.stitchPrimary,
                                 foregroundColor: const Color(0xFF140F0D),
-                                elevation: 8,
-                                shadowColor: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.4),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
                               ),
-                              child: const Text("创建", style: TextStyle(fontWeight: FontWeight.w900)),
+                              child: const Text("创建", style: TextStyle(fontWeight: FontWeight.bold)),
                             ),
                           ),
                         ),

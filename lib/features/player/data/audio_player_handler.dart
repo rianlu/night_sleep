@@ -87,7 +87,10 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
       if (endTime > startTime && endTime < _currentItem!.duration) {
         final end = Duration(seconds: endTime);
         if (position >= end) {
-          if (queue.value.length <= 1) {
+          if (_stopAtEndOfTrack) {
+            _stopAtEndOfTrack = false;
+            stop();
+          } else if (queue.value.length <= 1) {
             stop();
           } else {
             skipToNext();
@@ -106,10 +109,6 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     });
   }
 
-  void setSleepTimerAtEnd(bool enable) {
-    _stopAtEndOfTrack = enable;
-  }
-
   void setFadeOutEnabled(bool enable) {
     _fadeOutEnabled = enable;
   }
@@ -119,22 +118,23 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
       await stop();
       return;
     }
-    const steps = 30; // 3秒内降低音量
+    const steps = 50; // 5 seconds
     const interval = Duration(milliseconds: 100);
     double initialVolume = _player.volume;
+    
     for (int i = 1; i <= steps; i++) {
-      await Future.delayed(interval);
-      double newVolume = initialVolume * (1.0 - (i / steps));
-      await _player.setVolume(newVolume);
+        if (!_player.playing) break;
+        await Future.delayed(interval);
+        double newVolume = initialVolume * (1.0 - (i / steps));
+        await _player.setVolume(newVolume);
     }
     await stop();
-    await _player.setVolume(initialVolume); // 重置音量以便下次播放
+    await _player.setVolume(initialVolume);
   }
 
   void cancelSleepTimer() {
     _sleepTimer?.cancel();
     _sleepTimer = null;
-    _stopAtEndOfTrack = false;
     _sleepTimerDuration = null;
     _sleepTimerEnd = null;
   }
@@ -143,7 +143,10 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
   DateTime? get sleepTimerEnd => _sleepTimerEnd;
 
   @override
-  Future<void> play() => _player.play();
+  Future<void> play() async {
+    if (_player.volume < 0.01) await _player.setVolume(1.0);
+    return _player.play();
+  }
 
   @override
   Future<void> pause() => _player.pause();
@@ -339,6 +342,9 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
   Future<void> _playVideoItemInternal(VideoItem item, {bool forceRestart = false}) async {
     _currentItem = item;
     
+    // 强制重置音量，防止之前的渐隐导致静音
+    if (_player.volume < 0.01) await _player.setVolume(1.0);
+
     // 确保当前项目在队列中。如果队列为空，说明是单独播放。
     if (queue.value.isEmpty) {
         queue.add([_toMediaItem(item)]);
@@ -429,6 +435,22 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
             await skipToQueueIndex(index);
          }
        }
+    }
+  }
+
+  Future<void> updateQueueItem(VideoItem item) async {
+    final index = queue.value.indexWhere((m) => m.id == item.id);
+    if (index == -1) return;
+
+    final newItem = _toMediaItem(item);
+    final newQueue = List<MediaItem>.from(queue.value);
+    newQueue[index] = newItem;
+    queue.add(newQueue);
+
+    // If the updated item is currently playing, update mediaItem and _currentItem
+    if (mediaItem.value?.id == item.id) {
+      mediaItem.add(newItem);
+      _currentItem = item; // Update internal current item for range checks
     }
   }
 

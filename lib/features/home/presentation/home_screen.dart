@@ -30,8 +30,8 @@ class _HomeScreenState extends State<HomeScreen> {
   late StreamSubscription _intentDataStreamSubscription;
   final ScrollController _scrollController = ScrollController();
 
-  // Stitch Categories
-  // Stitch Categories
+  // Stitch 分类
+  // Stitch 分类
   List<CategoryItem> _realCategories = [];
   int _selectedCategoryIndex = 0;
 
@@ -80,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadVideos() async {
     setState(() => _isLoading = true);
     
-    // Load dynamic categories
+    // 加载动态分类
     final cats = await DatabaseHelper.instance.readAllCategories();
     
     if (_selectedCategoryIndex >= cats.length) {
@@ -89,11 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     List<VideoItem> videos;
     final categoryName = cats.isNotEmpty ? cats[_selectedCategoryIndex].name : "默认";
-    if (categoryName == "默认") {
-      videos = await DatabaseHelper.instance.readAllVideos();
-    } else {
-      videos = await DatabaseHelper.instance.readVideosByCategory(categoryName);
-    }
+    videos = await DatabaseHelper.instance.readVideosByCategory(categoryName);
     
     setState(() {
       _realCategories = cats;
@@ -105,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ProMaxColors.stitchCozyBg,
+      backgroundColor: ProMaxColors.stitchBackground, // Canonical Deep Warm Coffee
       body: Stack(
         children: [
           CustomScrollView(
@@ -114,11 +110,11 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildSliverAppBar(),
               _buildCategoryList(),
               _isLoading 
-                  ? const SliverFillRemaining(child: Center(child: CircularProgressIndicator(color: ProMaxColors.stitchCozyPrimary)))
+                  ? const SliverFillRemaining(child: Center(child: CircularProgressIndicator(color: ProMaxColors.stitchPrimary)))
                   : _videos.isEmpty 
                       ? SliverFillRemaining(child: _buildEmptyState())
                       : _buildVideoList(),
-              const SliverToBoxAdapter(child: SizedBox(height: 180)), // Space for global MiniPlayer and Nav
+              const SliverToBoxAdapter(child: SizedBox(height: 180)), // 为全局迷你播放器和导航栏预留空间
             ],
           ),
         ],
@@ -128,11 +124,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildSliverAppBar() {
     return SliverAppBar(
-      backgroundColor: ProMaxColors.stitchCozyBg.withValues(alpha: 0.95),
+      backgroundColor: ProMaxColors.stitchBackground.withValues(alpha: 0.95),
       surfaceTintColor: Colors.transparent,
       floating: true,
       pinned: true,
-      expandedHeight: 100, // Reduced height as we put title in flexibleSpace or bottom
+      expandedHeight: 100, // 减小高度，因为标题放在 flexibleSpace 或底部
       elevation: 0,
       flexibleSpace: FlexibleSpaceBar(
         background: ClipRect(
@@ -150,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
               "晚上好",
               style: GoogleFonts.manrope(
                 fontSize: 10,
-                color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.8),
+                color: ProMaxColors.stitchPrimary.withValues(alpha: 0.8), // Amber Gold
                 fontWeight: FontWeight.w500,
                 letterSpacing: 1.2,
               ),
@@ -159,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
               "我的眠单",
               style: GoogleFonts.manrope(
                 fontSize: 20,
-                color: ProMaxColors.stitchCozyTextLight,
+                color: ProMaxColors.stitchTextLight,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -177,28 +173,28 @@ class _HomeScreenState extends State<HomeScreen> {
                     context,
                     MaterialPageRoute(builder: (_) => const CategoryManagementScreen()),
                   );
-                  _loadVideos(); // Refresh categories and list
+                  _loadVideos(); // 刷新分类和列表
                 },
                 style: TextButton.styleFrom(
                   backgroundColor: Colors.white.withValues(alpha: 0.05),
                   shape: const StadiumBorder(),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 ),
-                child: const Text("管理", style: TextStyle(color: ProMaxColors.stitchCozyTextMuted, fontSize: 13, fontWeight: FontWeight.w500)),
+                child: const Text("管理", style: TextStyle(color: ProMaxColors.stitchTextMuted, fontSize: 13, fontWeight: FontWeight.w500)),
               ),
               const SizedBox(width: 12),
               Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   boxShadow: [
-                    BoxShadow(color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.2), blurRadius: 10, spreadRadius: 2),
+                    BoxShadow(color: ProMaxColors.stitchPrimary.withValues(alpha: 0.2), blurRadius: 10, spreadRadius: 2),
                   ]
                 ),
                 child: IconButton(
                   icon: const Icon(Icons.add_rounded, size: 22),
                   style: IconButton.styleFrom(
-                    backgroundColor: ProMaxColors.stitchCozyAccent,
-                    foregroundColor: ProMaxColors.stitchCozyBg,
+                    backgroundColor: ProMaxColors.stitchPrimary,
+                    foregroundColor: ProMaxColors.stitchBackground,
                   ),
                   onPressed: () async {
                     final result = await Navigator.push(
@@ -235,11 +231,11 @@ class _HomeScreenState extends State<HomeScreen> {
               child: ActionChip(
                 label: Text(displayCategories[index]),
                 labelStyle: TextStyle(
-                  color: isSelected ? ProMaxColors.stitchCozyBg : ProMaxColors.stitchCozyTextMuted,
+                  color: isSelected ? ProMaxColors.stitchBackground : ProMaxColors.stitchTextMuted,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                   fontSize: 13,
                 ),
-                backgroundColor: isSelected ? ProMaxColors.stitchCozyAccent : ProMaxColors.stitchCozyCardBg,
+                backgroundColor: isSelected ? ProMaxColors.stitchPrimary : ProMaxColors.stitchCardBg,
                 shape: const StadiumBorder(side: BorderSide(color: Colors.transparent)),
                 onPressed: () {
                   setState(() => _selectedCategoryIndex = index);
@@ -273,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: ProMaxColors.stitchCozyCardBg,
+        color: ProMaxColors.stitchCardBg,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
@@ -317,7 +313,7 @@ class _HomeScreenState extends State<HomeScreen> {
             borderRadius: BorderRadius.circular(16),
             child: Row(
               children: [
-                // Thumbnail
+                // 缩略图
                  Hero(
                    tag: 'list-cover-${video.id}',
                    child: Container(
@@ -342,7 +338,7 @@ class _HomeScreenState extends State<HomeScreen> {
                  
                  const SizedBox(width: 16),
                  
-                 // Info
+                 // 信息
                  Expanded(
                    child: Column(
                      crossAxisAlignment: CrossAxisAlignment.start,
@@ -356,7 +352,7 @@ class _HomeScreenState extends State<HomeScreen> {
                            style: GoogleFonts.manrope(
                              fontSize: 15,
                              fontWeight: FontWeight.w600,
-                             color: isPlaying ? ProMaxColors.stitchCozyAccent : ProMaxColors.stitchCozyTextLight,
+                             color: isPlaying ? ProMaxColors.stitchPrimary : ProMaxColors.stitchTextLight,
                            ),
                          ),
                        ),
@@ -366,18 +362,18 @@ class _HomeScreenState extends State<HomeScreen> {
                            Container(
                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                              decoration: BoxDecoration(
-                               color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.1),
+                               color: ProMaxColors.stitchPrimary.withValues(alpha: 0.1),
                                borderRadius: BorderRadius.circular(4),
                              ),
                              child: Text(
                                video.category ?? "未分类",
-                               style: TextStyle(color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.9), fontSize: 10, fontWeight: FontWeight.bold),
+                               style: TextStyle(color: ProMaxColors.stitchPrimary.withValues(alpha: 0.9), fontSize: 10, fontWeight: FontWeight.bold),
                              ),
                            ),
                            const SizedBox(width: 8),
                            Text(
                              _formatDuration(video.duration),
-                             style: const TextStyle(color: ProMaxColors.stitchCozyTextMuted, fontSize: 11),
+                             style: const TextStyle(color: ProMaxColors.stitchTextMuted, fontSize: 11),
                            ),
                          ],
                        ),
@@ -385,17 +381,17 @@ class _HomeScreenState extends State<HomeScreen> {
                    ),
                  ),
                  
-                 // Play Button
+                 // 播放按钮
                  Container(
                    width: 40,
                    height: 40,
                    decoration: BoxDecoration(
                      shape: BoxShape.circle,
-                     color: ProMaxColors.stitchCozyAccent.withValues(alpha: 0.1),
+                     color: ProMaxColors.stitchPrimary.withValues(alpha: 0.1),
                    ),
                    child: Icon(
                      isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                     color: ProMaxColors.stitchCozyAccent,
+                     color: ProMaxColors.stitchPrimary,
                      size: 22,
                    ),
                  ),
@@ -412,13 +408,13 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.nights_stay_outlined, size: 80, color: ProMaxColors.stitchCozyTextMuted.withValues(alpha: 0.3)),
+          Icon(Icons.nights_stay_outlined, size: 80, color: ProMaxColors.stitchTextMuted.withValues(alpha: 0.3)),
           const SizedBox(height: 16),
           Text(
             '好梦等待中...',
             style: GoogleFonts.manrope(
               fontSize: 18,
-              color: ProMaxColors.stitchCozyTextMuted,
+              color: ProMaxColors.stitchTextMuted,
               fontWeight: FontWeight.w300,
             ),
           ),
@@ -427,8 +423,8 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.add),
             label: const Text('添加内容'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: ProMaxColors.stitchCozyAccent,
-              foregroundColor: ProMaxColors.stitchCozyBg,
+              backgroundColor: ProMaxColors.stitchPrimary,
+              foregroundColor: ProMaxColors.stitchBackground,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             ),
@@ -449,7 +445,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return Container(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
           decoration: const BoxDecoration(
-            color: Color(0xFF140F0D),
+            color: ProMaxColors.stitchBackground,
             borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: Column(
@@ -465,7 +461,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 16),
               ListTile(
-                leading: const Icon(Icons.tune_rounded, color: ProMaxColors.stitchCozyAccent),
+                leading: const Icon(Icons.tune_rounded, color: ProMaxColors.stitchPrimary),
                 title: const Text("编辑播放区间", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                 onTap: () async {
                   Navigator.pop(context);
@@ -474,7 +470,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     MaterialPageRoute(builder: (_) => AudioParserScreen(video: video, isEditing: true)),
                   );
                   if (result == true) {
-                    _loadVideos();
+                    await _loadVideos();
+                    // Sync updates to AudioHandler (for playing item)
+                    final updated = await DatabaseHelper.instance.read(video.id);
+                    if (updated != null && mounted) {
+                      final handler = context.read<AudioHandler>();
+                      if (handler is AudioPlayerHandler) {
+                        handler.updateQueueItem(updated);
+                      }
+                    }
                   }
                 },
               ),
@@ -498,7 +502,7 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF140F0D),
+        backgroundColor: ProMaxColors.stitchBackground,
         title: const Text("删除音频", style: TextStyle(color: Colors.white)),
         content: Text("确定删除 \"${video.title}\" 吗？", style: const TextStyle(color: Colors.white70)),
         actions: [
@@ -521,7 +525,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   content: Text('已删除 ${video.title}'),
                   action: SnackBarAction(
                     label: '撤销',
-                    textColor: ProMaxColors.stitchCozyAccent,
+                    textColor: ProMaxColors.stitchPrimary,
                     onPressed: () async {
                       await DatabaseHelper.instance.create(deletedVideo);
                       _loadVideos();
