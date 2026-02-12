@@ -285,29 +285,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   final currentId = handler.mediaItem.value?.id;
                   if (currentId != video.id) {
                     handler.loadPlaylist(_videos, _videos.indexOf(video));
+                  } else {
+                    // If clicking current item, just toggle play/pause or open player?
+                    // Spec says "Play audio only". 
+                    // If it's already playing, maybe open player? Or just do nothing/pause?
+                    // Let's stick to "Play" (ensure it's playing).
+                    if (handler.playbackState.value.playing == false) {
+                      handler.play();
+                    }
                   }
                }
-               Navigator.push(
-                 context,
-                 PageRouteBuilder(
-                   transitionDuration: const Duration(milliseconds: 420),
-                   pageBuilder: (_, __, ___) => PlayerScreen(
-                     videoItem: video,
-                     heroCoverTag: 'list-cover-${video.id}',
-                     heroTitleTag: 'list-title-${video.id}',
-                   ),
-                   transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                     final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
-                     return FadeTransition(
-                       opacity: curved,
-                       child: ScaleTransition(
-                         scale: Tween<double>(begin: 0.98, end: 1.0).animate(curved),
-                         child: child,
-                       ),
-                     );
-                   },
-                 ),
-               );
             },
             onLongPress: () => _showSleepListActions(video),
             borderRadius: BorderRadius.circular(16),

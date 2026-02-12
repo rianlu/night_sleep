@@ -34,6 +34,7 @@ class SleepReportScreen extends StatelessWidget {
   Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,24 +43,30 @@ class SleepReportScreen extends StatelessWidget {
               "睡眠周报",
               style: GoogleFonts.manrope(
                 color: Colors.white,
-                fontSize: 28,
+                fontSize: 32,
                 fontWeight: FontWeight.w900,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Text(
               "10月23日 - 10月29日",
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 13),
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.3),
+                fontSize: 14,
+                letterSpacing: 0.5,
+              ),
             ),
           ],
         ),
         Container(
-          padding: const EdgeInsets.all(10),
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
-            shape: BoxShape.circle,
+            color: ProMaxColors.stitchReportCardBg,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           ),
-          child: const Icon(Icons.calendar_today_rounded, color: Colors.white, size: 20),
+          child: const Icon(Icons.calendar_today_rounded, color: Colors.white70, size: 20),
         ),
       ],
     );
@@ -102,47 +109,105 @@ class SleepReportScreen extends StatelessWidget {
     required bool isTrendPositive,
   }) {
     return Container(
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: ProMaxColors.stitchReportCardBg,
         borderRadius: BorderRadius.circular(28),
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: ProMaxColors.stitchReportAccent, size: 16),
-              const SizedBox(width: 8),
-              Text(title, style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(value, style: GoogleFonts.manrope(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
-              if (unit.isNotEmpty) ...[
-                const SizedBox(width: 4),
-                Text(unit, style: const TextStyle(color: Colors.white38, fontSize: 12)),
-              ],
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: Stack(
+          children: [
+            // Decorative Circle
+            Positioned(
+              top: -20,
+              right: -20,
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.03),
+                  shape: BoxShape.circle,
+                ),
+              ),
             ),
-            child: Text(
-              isTrendPositive ? "📈 $trend" : "📉 $trend",
-              style: const TextStyle(color: Colors.greenAccent, fontSize: 10, fontWeight: FontWeight.bold),
+            
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(icon, color: ProMaxColors.stitchPrimary, size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        title, 
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.4), 
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        value, 
+                        style: GoogleFonts.manrope(
+                          color: Colors.white, 
+                          fontSize: 32, 
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      if (unit.isNotEmpty) ...[
+                        const SizedBox(width: 4),
+                        Text(
+                          unit, 
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.3), 
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (title.contains("总听"))
+                          Icon(Icons.trending_up_rounded, color: ProMaxColors.stitchPrimary.withValues(alpha: 0.8), size: 12),
+                        if (title.contains("入睡"))
+                          Icon(Icons.check_rounded, color: ProMaxColors.stitchPrimary.withValues(alpha: 0.8), size: 12),
+                        const SizedBox(width: 4),
+                        Text(
+                          trend,
+                          style: const TextStyle(
+                            color: ProMaxColors.stitchPrimary, 
+                            fontSize: 11, 
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -177,18 +242,18 @@ class SleepReportScreen extends StatelessWidget {
           ),
           const SizedBox(height: 48),
           SizedBox(
-            height: 150,
+            height: 200,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                _buildBar("周一", 0.4),
-                _buildBar("周二", 0.6),
-                _buildBar("周三", 0.5),
-                _buildBar("周四", 0.7),
-                _buildBar("周五", 0.9, isHighlight: true),
-                _buildBar("周六", 0.8),
-                _buildBar("周日", 0.6),
+                Expanded(child: _buildBar("周一", 0.4)),
+                Expanded(child: _buildBar("周二", 0.6)),
+                Expanded(child: _buildBar("周三", 0.5)),
+                Expanded(child: _buildBar("周四", 0.7)),
+                Expanded(child: _buildBar("周五", 0.9, isHighlight: true)),
+                Expanded(child: _buildBar("周六", 0.8)),
+                Expanded(child: _buildBar("周日", 0.6)),
               ],
             ),
           ),
@@ -209,19 +274,40 @@ class SleepReportScreen extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
+        // Track Background
         Container(
-          width: 32,
-          height: 100 * percent,
+          width: 36,
+          height: 140, // Fixed track height
           decoration: BoxDecoration(
-            color: isHighlight ? ProMaxColors.stitchReportAccent : Colors.white.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: isHighlight ? [
-              BoxShadow(color: ProMaxColors.stitchReportAccent.withValues(alpha: 0.2), blurRadius: 10, spreadRadius: 2)
-            ] : null,
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)), // Flat bottom
+          ),
+          alignment: Alignment.bottomCenter,
+          child: Container(
+            width: 36,
+            height: 140 * percent.clamp(0.0, 1.0),
+            decoration: BoxDecoration(
+              color: isHighlight ? ProMaxColors.stitchPrimary : Colors.white.withValues(alpha: 0.1),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(18)), // Flat bottom matching track
+              boxShadow: isHighlight ? [
+                BoxShadow(
+                  color: ProMaxColors.stitchPrimary.withValues(alpha: 0.3), 
+                  blurRadius: 15, 
+                  spreadRadius: 1,
+                )
+              ] : null,
+            ),
           ),
         ),
-        const SizedBox(height: 12),
-        Text(day, style: TextStyle(color: isHighlight ? ProMaxColors.stitchReportAccent : Colors.white24, fontSize: 10, fontWeight: isHighlight ? FontWeight.bold : FontWeight.normal)),
+        const SizedBox(height: 16),
+        Text(
+          day, 
+          style: TextStyle(
+            color: isHighlight ? ProMaxColors.stitchPrimary : Colors.white.withValues(alpha: 0.3), 
+            fontSize: 12, 
+            fontWeight: isHighlight ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
       ],
     );
   }
@@ -247,20 +333,23 @@ class SleepReportScreen extends StatelessWidget {
 
   Widget _buildCompanionItem(String title, String category, double progress, String duration) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: ProMaxColors.stitchReportCardBg,
+        color: ProMaxColors.stitchCardBg,
         borderRadius: BorderRadius.circular(36),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
-            decoration: const BoxDecoration(color: Colors.black26, shape: BoxShape.circle),
-            child: const Icon(Icons.music_note_rounded, color: Colors.white24),
+            width: 56,
+            height: 56,
+            decoration: const BoxDecoration(
+              color: Colors.black26, 
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.music_note_rounded, color: Colors.white24, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -270,26 +359,45 @@ class SleepReportScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                    Text(duration, style: const TextStyle(color: ProMaxColors.stitchReportAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                    Text(
+                      title, 
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                    Text(
+                      duration, 
+                      style: const TextStyle(
+                        color: ProMaxColors.stitchPrimary, 
+                        fontSize: 14, 
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(6)),
-                      child: Text(category, style: const TextStyle(color: Colors.white38, fontSize: 10)),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.08), 
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        category, 
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5), 
+                          fontSize: 11,
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(2),
                         child: LinearProgressIndicator(
                           value: progress,
                           backgroundColor: Colors.white.withValues(alpha: 0.05),
-                          valueColor: const AlwaysStoppedAnimation(ProMaxColors.stitchReportAccent),
+                          valueColor: const AlwaysStoppedAnimation(ProMaxColors.stitchPrimary),
                           minHeight: 4,
                         ),
                       ),
@@ -305,14 +413,16 @@ class SleepReportScreen extends StatelessWidget {
   }
 
   Widget _buildBottomQuote() {
-    return Center(
-      child: Text(
-        "\" 良好的睡眠是治愈一切的良药。\"",
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.2),
-          fontSize: 14,
-          fontStyle: FontStyle.italic,
-          fontFamily: 'Serif',
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      child: Center(
+        child: Text(
+          "\" 良好的睡眠是治愈一切的良药。\"",
+          style: GoogleFonts.notoSans(
+            color: Colors.white.withValues(alpha: 0.15),
+            fontSize: 15,
+            fontStyle: FontStyle.italic,
+          ),
         ),
       ),
     );

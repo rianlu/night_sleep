@@ -204,9 +204,9 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
   void _finishEditing(CategoryItem category) async {
     if (category.name == "默认") return;
     final newName = _editController.text.trim();
-    if (newName.isNotEmpty) {
+    if (newName.isNotEmpty && newName != category.name) {
       final updated = category.copyWith(name: newName);
-      await DatabaseHelper.instance.updateCategory(updated);
+      await DatabaseHelper.instance.renameCategory(updated, category.name);
       _loadCategories();
     }
     setState(() {
@@ -229,9 +229,11 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
           ),
           TextButton(
             onPressed: () async {
-              await DatabaseHelper.instance.deleteCategory(category.id);
-              Navigator.pop(context);
-              _loadCategories();
+              await DatabaseHelper.instance.deleteCategory(category.id, category.name);
+              if (context.mounted) {
+                Navigator.pop(context);
+                _loadCategories();
+              }
             },
             child: const Text("删除", style: TextStyle(color: Colors.redAccent)),
           ),
@@ -355,7 +357,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                                   await DatabaseHelper.instance.createCategory(newCat);
                                   _loadCategories();
                                 }
-                                Navigator.pop(context);
+                                if (context.mounted) Navigator.pop(context);
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: ProMaxColors.stitchPrimary,

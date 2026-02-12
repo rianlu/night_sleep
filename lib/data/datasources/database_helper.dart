@@ -200,13 +200,43 @@ class DatabaseHelper {
     );
   }
 
-  Future<int> deleteCategory(String id) async {
+  Future<void> renameCategory(CategoryItem category, String oldName) async {
     final db = await database;
-    return await db.delete(
-      AppConstants.tableCategories,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    await db.transaction((txn) async {
+      // 1. Update category name
+      await txn.update(
+        AppConstants.tableCategories,
+        category.toMap(),
+        where: 'id = ?',
+        whereArgs: [category.id],
+      );
+      // 2. Update all videos belonging to this category
+      await txn.update(
+        AppConstants.tableVideos,
+        {'category': category.name},
+        where: 'category = ?',
+        whereArgs: [oldName],
+      );
+    });
+  }
+
+  Future<void> deleteCategory(String id, String categoryName) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      // 1. Move items to "默认"
+      await txn.update(
+        AppConstants.tableVideos,
+        {'category': '默认'},
+        where: 'category = ?',
+        whereArgs: [categoryName],
+      );
+      // 2. Delete the category
+      await txn.delete(
+        AppConstants.tableCategories,
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    });
   }
 
   Future<void> createCategory(CategoryItem category) async {

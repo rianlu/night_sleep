@@ -14,12 +14,18 @@ class PlayerScreen extends StatefulWidget {
   final VideoItem videoItem;
   final String heroCoverTag;
   final String heroTitleTag;
+  final VoidCallback? onClose;
+  final ValueChanged<double>? onDragUpdate;
+  final ValueChanged<double>? onDragEnd;
 
   const PlayerScreen({
     super.key,
     required this.videoItem,
     required this.heroCoverTag,
     required this.heroTitleTag,
+    this.onClose,
+    this.onDragUpdate,
+    this.onDragEnd,
   });
 
   @override
@@ -29,11 +35,8 @@ class PlayerScreen extends StatefulWidget {
 class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMixin {
   late VideoItem _displayItem;
   late final AnimationController _coverRotationController;
-  late final AnimationController _dragResetController;
   late final AnimationController _breathingController;
   StreamSubscription<PlaybackState>? _playbackSub;
-  double _dragOffset = 0;
-  bool _canDragToDismiss = false;
 
   // Slider State
   bool _isDraggingSlider = false;
@@ -44,7 +47,6 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     super.initState();
     _displayItem = widget.videoItem;
     _coverRotationController = AnimationController(vsync: this, duration: const Duration(seconds: 20));
-    _dragResetController = AnimationController(vsync: this, duration: const Duration(milliseconds: 200));
     _breathingController = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat(reverse: true);
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -77,7 +79,6 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   void dispose() {
     _playbackSub?.cancel();
     _coverRotationController.dispose();
-    _dragResetController.dispose();
     _breathingController.dispose();
     super.dispose();
   }
@@ -85,7 +86,6 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     final audioHandler = context.watch<AudioHandler>();
-    // Use Canonical Amber Gold Theme Color
     const primaryColor = ProMaxColors.stitchPrimary;
 
     return StreamBuilder<MediaItem?>(
@@ -94,122 +94,68 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
         final mediaItem = snapshot.data;
         
         return Scaffold(
-          backgroundColor: ProMaxColors.stitchBackground, // Deep Warm Coffee
-          extendBodyBehindAppBar: true,
-          appBar: _buildAppBar(context),
+          backgroundColor: ProMaxColors.stitchBackground,
           body: GestureDetector(
-            onVerticalDragStart: (details) {
-              _canDragToDismiss = details.localPosition.dy < 160;
-            },
             onVerticalDragUpdate: (details) {
-              if (!_canDragToDismiss) return;
-              if (details.delta.dy <= 0) return;
-              setState(() {
-                _dragOffset = (_dragOffset + details.delta.dy).clamp(0, 240);
-              });
+              widget.onDragUpdate?.call(details.delta.dy);
             },
-            onVerticalDragEnd: (_) {
-              if (!_canDragToDismiss) return;
-              if (_dragOffset > 120) {
-                Navigator.pop(context);
-              } else {
-                _animateDragReset();
-              }
-              _canDragToDismiss = false;
+            onVerticalDragEnd: (details) {
+              widget.onDragEnd?.call(details.primaryVelocity ?? 0);
             },
-            child: AnimatedBuilder(
-              animation: _dragResetController,
-              builder: (context, child) {
-                final opacity = (1 - (_dragOffset / 300)).clamp(0.0, 1.0);
-                return Transform.translate(
-                  offset: Offset(0, _dragOffset),
-                  child: Opacity(opacity: opacity, child: child),
-                );
-              },
-              child: Stack(
-                children: [
-                  _buildThemeBackground(primaryColor),
-                  
-                  SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Column(
-                        children: [
-                          const Spacer(flex: 2),
-                          
-                          // 1. Vinyl Cover
-                          _buildVinylCover(audioHandler, primaryColor),
-                          
-                          const Spacer(flex: 1), 
-                          
-                          // 2. Track Info
-                          _buildTrackInfo(mediaItem, primaryColor),
-                          
-                          const SizedBox(height: 32),
-
-                          // 3. Linear Progress Bar
-                          _buildProgressBar(audioHandler, primaryColor),
-                          
-                          const Spacer(flex: 2),
-                          
-                          // 4. Main Controls
-                          _buildMainControls(audioHandler, primaryColor),
-                          
-                          const Spacer(flex: 2),
-                          
-                          // 5. Bottom Pill Action Bar
-                          _buildBottomPillBar(context, audioHandler, primaryColor),
-                          
-                          const SizedBox(height: 32),
-                        ],
-                      ),
+            child: Stack(
+              children: [
+                _buildThemeBackground(primaryColor),
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.expand_more_rounded, size: 32, color: ProMaxColors.stitchTextLight),
+                              onPressed: () {
+                                if (widget.onClose != null) {
+                                  widget.onClose!();
+                                } else {
+                                  Navigator.pop(context);
+                                }
+                              },
+                            ),
+                            Text(
+                              "正在播放",
+                              style: TextStyle(
+                                color: ProMaxColors.stitchTextLight.withValues(alpha: 0.8),
+                                fontSize: 17,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(width: 48),
+                          ],
+                        ),
+                        const Spacer(flex: 2),
+                        _buildVinylCover(audioHandler, primaryColor),
+                        const Spacer(flex: 1), 
+                        _buildTrackInfo(mediaItem, primaryColor),
+                        const SizedBox(height: 32),
+                        _buildProgressBar(audioHandler, primaryColor),
+                        const Spacer(flex: 2),
+                        _buildMainControls(audioHandler, primaryColor),
+                        const Spacer(flex: 2),
+                        _buildBottomPillBar(context, audioHandler, primaryColor),
+                        const SizedBox(height: 32),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         );
-      }
-    );
-  }
-
-  void _animateDragReset() {
-    final begin = _dragOffset;
-    _dragResetController.reset();
-    final animation = Tween<double>(begin: begin, end: 0).animate(_dragResetController);
-    animation.addListener(() {
-      setState(() {
-        _dragOffset = animation.value;
-      });
-    });
-    _dragResetController.forward();
-  }
-
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return AppBar(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.expand_more_rounded, size: 32, color: ProMaxColors.stitchTextLight),
-        onPressed: () => Navigator.pop(context),
-      ),
-      centerTitle: true,
-      title: Text(
-        "正在播放",
-        style: TextStyle(
-          color: ProMaxColors.stitchTextLight.withValues(alpha: 0.3),
-          fontSize: 13,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 2.5,
-        ),
-      ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.more_horiz_rounded, color: ProMaxColors.stitchTextLight),
-          onPressed: () {},
-        ),
-      ],
+      },
     );
   }
 
@@ -275,7 +221,6 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                         blurRadius: 40,
                         offset: const Offset(0, 20),
                       ),
-                      // Breathing Glow (Theme Color)
                       BoxShadow(
                         color: shadowColor,
                         blurRadius: spread,
@@ -292,12 +237,11 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                           fit: BoxFit.cover,
                           errorBuilder: (context, e, s) => Container(color: ProMaxColors.stitchCardBg),
                         ),
-                        // Vinyl Hole
                         Center(
                           child: Container(
                             width: 50, height: 50,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF140F0D).withValues(alpha: 0.85), // Dark
+                              color: const Color(0xFF140F0D).withValues(alpha: 0.85),
                               shape: BoxShape.circle,
                               border: Border.all(color: Colors.white10, width: 1),
                             ),
@@ -315,7 +259,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                 ),
               ),
             );
-          }
+          },
         );
       }
     );
@@ -375,6 +319,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   Widget _buildProgressBar(AudioHandler handler, Color primaryColor) {
     return StreamBuilder<Duration>(
       stream: AudioService.position,
+      initialData: handler.playbackState.value.position,
       builder: (context, posSnap) {
         final position = posSnap.data ?? Duration.zero;
         final duration = handler.mediaItem.value?.duration ?? Duration(seconds: _displayItem.duration);
@@ -398,7 +343,6 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                   activeTrackColor: primaryColor,
                   inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
                   thumbColor: primaryColor,
-                  // Custom Glowing Thumb
                   thumbShape: GlowingSliderThumbShape(color: primaryColor), 
                   overlayColor: primaryColor.withValues(alpha: 0.2),
                   overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
@@ -477,7 +421,7 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                 child: Icon(
                   playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
                   size: 40,
-                  color: const Color(0xFF140F0D), // Dark icon on bright background
+                  color: const Color(0xFF140F0D),
                 ),
               ),
             ),
@@ -504,7 +448,6 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-           // 1. Loop Mode
            if (handler is AudioPlayerHandler)
              StreamBuilder<bool>(
                stream: (handler as AudioPlayerHandler).shuffleModeStream,
@@ -544,13 +487,11 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
            else
               IconButton(icon: const Icon(Icons.repeat_rounded, color: Colors.white30), onPressed: () {}),
            
-           // 2. Playlist
            IconButton(
              icon: const Icon(Icons.queue_music_rounded, color: ProMaxColors.stitchTextLight), 
              onPressed: () => _showPlaylistSheet(context, audioHandler: handler),
            ),
            
-           // 3. Sleep Timer
            StreamBuilder<int>(
              stream: Stream.periodic(const Duration(seconds: 1), (i) => i),
              builder: (context, _) {
@@ -651,17 +592,14 @@ class GlowingSliderThumbShape extends SliderComponentShape {
   }) {
     final Canvas canvas = context.canvas;
     
-    // Glow
     final Paint glowPaint = Paint()
       ..color = color.withValues(alpha: 0.5)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
     canvas.drawCircle(center, enabledThumbRadius + 4, glowPaint);
     
-    // Core (Theme Color for night comfort, no white glare)
     final Paint thumbPaint = Paint()..color = color;
     canvas.drawCircle(center, enabledThumbRadius, thumbPaint);
     
-    // Inner Dot (Dark to mimic eye pupil or focus point)
     final Paint innerDocPaint = Paint()..color = const Color(0xFF140F0D);
     canvas.drawCircle(center, enabledThumbRadius * 0.4, innerDocPaint);
   }
@@ -673,7 +611,6 @@ class _PlaylistSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Explicitly use Canonical StitchPrimary (Amber Gold)
     const primaryColor = ProMaxColors.stitchPrimary;
     
     return Container(
@@ -780,7 +717,7 @@ class _PlaylistSheet extends StatelessWidget {
         key: key,
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color: const Color(0xFF2D241E), // Updated card bg
+          color: const Color(0xFF2D241E),
           borderRadius: BorderRadius.circular(32),
           border: Border.all(color: primaryColor.withValues(alpha: 0.6), width: 1),
           boxShadow: [
@@ -839,7 +776,7 @@ class _PlaylistSheet extends StatelessWidget {
       key: key,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1815), // Very dark coffee
+        color: const Color(0xFF1E1815),
         borderRadius: BorderRadius.circular(32),
         border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
       ),
@@ -857,7 +794,7 @@ class _PlaylistSheet extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                   ),
-                  child: Center(child: Text(indexStr, style: const TextStyle(color: Color(0xFFE6B874), fontWeight: FontWeight.bold, fontSize: 13))), // Muted gold index
+                  child: Center(child: Text(indexStr, style: const TextStyle(color: Color(0xFFE6B874), fontWeight: FontWeight.bold, fontSize: 13))),
                ),
                const SizedBox(width: 12),
                Expanded(
@@ -916,19 +853,15 @@ class _SleepTimerSheetState extends State<_SleepTimerSheet> {
     if (widget.handler is AudioPlayerHandler) {
       final h = widget.handler as AudioPlayerHandler;
       _fadeOut = h.fadeOutEnabled;
-      // Initialize state based on current timer (if running)
-      // For now default to 30 or 0
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Explicitly use Canonical StitchPrimary (Amber Gold)
     const primaryColor = ProMaxColors.stitchPrimary;
     
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
-      // Use Canonical StitchBackground
       decoration: const BoxDecoration(color: ProMaxColors.stitchBackground, borderRadius: BorderRadius.vertical(top: Radius.circular(44))),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -943,7 +876,6 @@ class _SleepTimerSheetState extends State<_SleepTimerSheet> {
             children: [
               const Icon(Icons.nights_stay_rounded, color: primaryColor, size: 30),
               const SizedBox(width: 10),
-              // If custom mode, show custom value, else show selected minutes
               Text("${_isCustomMode ? _customValue.toInt() : _selectedMinutes}分钟后停止", style: GoogleFonts.manrope(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900)),
             ],
           ),
@@ -1004,7 +936,6 @@ class _SleepTimerSheetState extends State<_SleepTimerSheet> {
                 if (widget.handler is AudioPlayerHandler) {
                    final h = widget.handler as AudioPlayerHandler;
                    h.setFadeOutEnabled(_fadeOut);
-                   // If custom mode is active, use custom value. Otherwise use preset.
                    final mins = _isCustomMode ? _customValue.toInt() : _selectedMinutes;
                    if (mins > 0) h.setSleepTimer(Duration(minutes: mins)); else h.cancelSleepTimer();
                 }
@@ -1024,14 +955,11 @@ class _SleepTimerSheetState extends State<_SleepTimerSheet> {
   }
 
   Widget _buildPresetBtn(String label, int mins, Color primaryColor) {
-    // Only highlight if NOT custom mode AND minutes match
     bool isSelected = !_isCustomMode && _selectedMinutes == mins;
     return GestureDetector(
       onTap: () => setState(() { 
         _isCustomMode = false; 
         _selectedMinutes = mins; 
-        // Optional: update custom slider to match preset for visual consistency?
-        // _customValue = mins.toDouble(); 
       }),
       child: Container(
         decoration: BoxDecoration(
@@ -1048,7 +976,6 @@ class _SleepTimerSheetState extends State<_SleepTimerSheet> {
     return GestureDetector(
       onTap: () => setState(() { 
         _isCustomMode = true; 
-        // When switching to custom mode, maybe keep current value as start point
         _selectedMinutes = _customValue.toInt();
       }),
       child: Container(
