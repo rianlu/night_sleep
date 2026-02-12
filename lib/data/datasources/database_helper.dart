@@ -20,13 +20,18 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
+    print("NightSleep: Opening database at $path");
     final db = await openDatabase(
       path,
       version: AppConstants.dbVersion,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
-    await _ensureSchema(db);
+    try {
+      await _ensureSchema(db);
+    } catch (e) {
+      print("NightSleep: Error in _ensureSchema: $e");
+    }
     return db;
   }
 
@@ -126,7 +131,24 @@ class DatabaseHelper {
       });
     }
 
-    // 移除旧版本的“全部”分类（如果存在）
+    // --- 数据重灾区修复：迁移 NULL 或 孤立的分类 ---
+    // 1. 将所有 NULL 或 空字符串分类归为 "默认"
+    await db.update(
+      AppConstants.tableVideos,
+      {'category': '默认'},
+      where: 'category IS NULL OR category = ?',
+      whereArgs: [''],
+    );
+
+    // 2. 将之前可能存在的 "全部" 分类迁移为 "默认"
+    await db.update(
+      AppConstants.tableVideos,
+      {'category': '默认'},
+      where: 'category = ?',
+      whereArgs: ['全部'],
+    );
+    
+    // 3. 移除旧版本的“全部”分类（如果存在）
     await db.delete('categories', where: 'name = ?', whereArgs: ['全部']);
   }
 

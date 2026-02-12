@@ -41,7 +41,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Ticker
     _playerExpandController = AnimationController(
         vsync: this, 
         duration: const Duration(milliseconds: 350), 
-        reverseDuration: const Duration(milliseconds: 350));
+        reverseDuration: const Duration(milliseconds: 350))
+      ..addListener(() => setState(() {}));
     _checkClipboard();
   }
 

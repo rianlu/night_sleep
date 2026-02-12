@@ -80,22 +80,30 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadVideos() async {
     setState(() => _isLoading = true);
     
-    // 加载动态分类
-    final cats = await DatabaseHelper.instance.readAllCategories();
-    
-    if (_selectedCategoryIndex >= cats.length) {
-      _selectedCategoryIndex = 0;
-    }
+    try {
+      // 加载动态分类
+      final cats = await DatabaseHelper.instance.readAllCategories();
+      
+      if (_selectedCategoryIndex >= cats.length) {
+        _selectedCategoryIndex = 0;
+      }
 
-    List<VideoItem> videos;
-    final categoryName = cats.isNotEmpty ? cats[_selectedCategoryIndex].name : "默认";
-    videos = await DatabaseHelper.instance.readVideosByCategory(categoryName);
-    
-    setState(() {
-      _realCategories = cats;
-      _videos = videos;
-      _isLoading = false;
-    });
+      List<VideoItem> videos;
+      final categoryName = cats.isNotEmpty ? cats[_selectedCategoryIndex].name : "默认";
+      videos = await DatabaseHelper.instance.readVideosByCategory(categoryName);
+      
+      setState(() {
+        _realCategories = cats;
+        _videos = videos;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print("NightSleep: Error loading videos: $e");
+      setState(() {
+        _isLoading = false;
+        _videos = [];
+      });
+    }
   }
 
   @override

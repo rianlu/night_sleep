@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:audio_service/audio_service.dart';
 import 'package:dio/dio.dart';
 import 'package:just_audio/just_audio.dart';
@@ -17,7 +18,19 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
   Completer<void>? _currentPlayTask;
 
   AudioPlayerHandler() {
-    _player.playbackEventStream.map(_transformEvent).pipe(playbackState);
+    // 必须初始化初始值，否则 UI 在 StreamBuilder 的 initialData 中访问 .value 会崩溃
+    // 这解决了你发现的“已导入音频看不到”的问题，因为 UI 崩溃导致了界面显示异常
+    queue.add([]);
+    mediaItem.add(null);
+    playbackState.add(PlaybackState(
+      controls: [MediaControl.play, MediaControl.skipToNext, MediaControl.skipToPrevious, MediaControl.stop],
+      systemActions: const {MediaAction.seek, MediaAction.skipToNext, MediaAction.skipToPrevious},
+      playing: false,
+      updatePosition: Duration.zero,
+      processingState: AudioProcessingState.idle,
+    ));
+
+    _player.playbackEventStream.map(_transformEvent).listen(playbackState.add);
     _player.positionStream.listen(_checkPlaybackRange);
     _player.playerStateStream.listen((state) {
       if (state.processingState == ProcessingState.completed) {
@@ -90,6 +103,9 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
           if (_stopAtEndOfTrack) {
             _stopAtEndOfTrack = false;
             stop();
+          } else if (_player.loopMode == LoopMode.one) {
+            // 单曲循环：回到设定的开始时间
+            seek(Duration(seconds: startTime));
           } else if (queue.value.length <= 1) {
             stop();
           } else {
@@ -163,25 +179,37 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
 
   @override
   Future<void> skipToNext() async {
+    if (queue.value.isEmpty) return;
+
     if (_player.loopMode == LoopMode.one) {
-      // 如果是单曲循环模式，"下一首"通常强制切歌或重播，取决于产品逻辑。
-      // 标准行为：Next 按钮在 LoopOne 下也会强制切换到下一首。
+      // 强制重起当前曲目
+      final current = mediaItem.value;
+      if (current != null) {
+        await _playMediaItem(current, forceRestart: true);
+        return;
+      }
     }
     
-    if (queue.value.isEmpty) return;
-    
-    int currentIndex = queue.value.indexWhere((item) => item.id == mediaItem.value?.id);
+    int currentIndex = (queue.hasValue && mediaItem.hasValue) 
+        ? queue.value.indexWhere((item) => item.id == mediaItem.value?.id)
+        : -1;
     if (currentIndex == -1) {
-      await _playMediaItem(queue.value.first, forceRestart: true);
+      if (queue.hasValue && queue.value.isNotEmpty) {
+        await _playMediaItem(queue.value.first, forceRestart: true);
+      }
       return;
     }
 
     int nextIndex;
-    if (_player.shuffleModeEnabled) {
-      // 随机模式逻辑（MVP 阶段暂使用简单索引加一）
-       nextIndex = currentIndex + 1;
+    if (_player.shuffleModeEnabled && queue.value.length > 1) {
+      // 实现真正的随机逻辑
+      final random = math.Random();
+      nextIndex = currentIndex;
+      while (nextIndex == currentIndex) {
+        nextIndex = random.nextInt(queue.value.length);
+      }
     } else {
-       nextIndex = currentIndex + 1;
+      nextIndex = currentIndex + 1;
     }
 
     if (nextIndex >= queue.value.length) {
@@ -193,26 +221,37 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     }
 
     final nextMediaItem = queue.value[nextIndex];
-    // 需要 VideoItem 详细属性来播放，但队列只持有 MediaItem。
-    // 需要从数据库重新读取或使用 extras 恢复。
-    // 优化：AudioPlayerHandler 应该持有一个 List<VideoItem> 或者从缓存读取。
-    // 目前使用 extras 来保持一致性并减少数据库库依赖。
-    
     await _playMediaItem(nextMediaItem, forceRestart: true);
   }
 
   @override
   Future<void> skipToPrevious() async {
     if (queue.value.isEmpty) return;
-    int currentIndex = queue.value.indexWhere((item) => item.id == mediaItem.value?.id);
-    if (currentIndex == -1) return;
 
-    if (_player.position.inSeconds > 3) {
-      seek(Duration.zero);
-      return;
+    if (_player.loopMode == LoopMode.one) {
+      final current = mediaItem.value;
+      if (current != null) {
+        await _playMediaItem(current, forceRestart: true);
+        return;
+      }
     }
 
-    int prevIndex = currentIndex - 1;
+    int currentIndex = (queue.hasValue && mediaItem.hasValue)
+        ? queue.value.indexWhere((item) => item.id == mediaItem.value?.id)
+        : -1;
+    if (currentIndex == -1) return;
+
+    int prevIndex;
+    if (_player.shuffleModeEnabled && queue.value.length > 1) {
+       final random = math.Random();
+       prevIndex = currentIndex;
+       while (prevIndex == currentIndex) {
+         prevIndex = random.nextInt(queue.value.length);
+       }
+    } else {
+       prevIndex = currentIndex - 1;
+    }
+
     if (prevIndex < 0) {
       if (_player.loopMode == LoopMode.all) {
         prevIndex = queue.value.length - 1;
@@ -248,7 +287,9 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     super.setRepeatMode(repeatMode);
     
     // 有效广播状态变更
-     playbackState.add(playbackState.value); 
+     if (playbackState.hasValue) {
+       playbackState.add(playbackState.value); 
+     }
   }
 
   Future<void> _playMediaItem(MediaItem item, {bool forceRestart = false}) async {
@@ -351,9 +392,39 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     }
 
     // 如果已经在播放该 ID 且不是强制重播，则跳过加载，防止重复启动导致的 Loading interrupted 错误
-    if (!forceRestart && mediaItem.value?.id == item.id && _player.processingState != ProcessingState.idle) {
+    final itemMedia = _toMediaItem(item);
+    final startPos = Duration(seconds: item.startTime);
+    final currentMediaId = mediaItem.hasValue ? mediaItem.value?.id : null;
+
+    // 如果已经在播放该 ID 且不是强制重播，则跳过加载，防止重复启动导致的 Loading interrupted 错误
+    if (!forceRestart && currentMediaId == item.id && _player.processingState != ProcessingState.idle) {
       return;
     }
+
+    // 1. 如果是强制重播/切歌，先停掉旧曲目，防止旧进度事件继续产生
+    if (forceRestart) {
+      await _player.stop();
+    }
+
+    // 2. 手动广播一个新的位置状态，确保 UI 在重绘前拿到的进度是正确的
+    // 这能解决你发现的“进度条跳动”问题
+    if (playbackState.hasValue) {
+      playbackState.add(playbackState.value.copyWith(
+        updatePosition: startPos,
+      ));
+    } else {
+      // 如果没有初始值，广播一个基本的就绪状态
+      playbackState.add(PlaybackState(
+        controls: [MediaControl.skipToPrevious, MediaControl.play, MediaControl.skipToNext, MediaControl.stop],
+        systemActions: const {MediaAction.seek, MediaAction.skipToNext, MediaAction.skipToPrevious},
+        playing: false,
+        updatePosition: startPos,
+        processingState: AudioProcessingState.loading,
+      ));
+    }
+
+    // 3. 更新 MediaItem 触发 UI 重绘
+    mediaItem.add(itemMedia);
 
     String? source;
     if (item.filePath != null && item.filePath!.isNotEmpty) {
@@ -382,13 +453,7 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
 
     source ??= 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'; 
     
-    final itemMedia = _toMediaItem(item);
-    mediaItem.add(itemMedia);
-
     try {
-      if (forceRestart) {
-        await _player.stop();
-      }
       final headers = {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Referer': 'https://www.bilibili.com/video/${item.id}',
@@ -409,14 +474,15 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
 
   @override
   Future<void> removeQueueItemAt(int index) async {
-    if (index < 0 || index >= queue.value.length) return;
+    if (!queue.hasValue || index < 0 || index >= queue.value.length) return;
     
     final newQueue = List<MediaItem>.from(queue.value);
     final removedItem = newQueue.removeAt(index);
     queue.add(newQueue);
 
     // If we removed the currently playing item, skip to next (or stop if empty)
-    if (mediaItem.value?.id == removedItem.id) {
+    final currentId = mediaItem.hasValue ? mediaItem.value?.id : null;
+    if (currentId == removedItem.id) {
        if (newQueue.isEmpty) {
          await stop();
        } else {
@@ -439,6 +505,7 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
   }
 
   Future<void> updateQueueItem(VideoItem item) async {
+    if (!queue.hasValue) return;
     final index = queue.value.indexWhere((m) => m.id == item.id);
     if (index == -1) return;
 
@@ -448,7 +515,8 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     queue.add(newQueue);
 
     // If the updated item is currently playing, update mediaItem and _currentItem
-    if (mediaItem.value?.id == item.id) {
+    final currentId = mediaItem.hasValue ? mediaItem.value?.id : null;
+    if (currentId == item.id) {
       mediaItem.add(newItem);
       _currentItem = item; // Update internal current item for range checks
     }
@@ -476,18 +544,18 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
         MediaAction.setRepeatMode,
       },
       androidCompactActionIndices: const [0, 1, 2],
-      processingState: const {
+      processingState: {
         ProcessingState.idle: AudioProcessingState.idle,
         ProcessingState.loading: AudioProcessingState.loading,
         ProcessingState.buffering: AudioProcessingState.buffering,
         ProcessingState.ready: AudioProcessingState.ready,
         ProcessingState.completed: AudioProcessingState.completed,
-      }[_player.processingState]!,
+      }[_player.processingState] ?? AudioProcessingState.idle,
       playing: _player.playing,
       updatePosition: _player.position,
       bufferedPosition: _player.bufferedPosition,
       speed: _player.speed,
-      queueIndex: queue.value.indexWhere((item) => item.id == mediaItem.value?.id),
+      queueIndex: queue.hasValue ? queue.value.indexWhere((item) => item.id == (mediaItem.hasValue ? mediaItem.value?.id : null)) : -1,
     );
   }
 }
