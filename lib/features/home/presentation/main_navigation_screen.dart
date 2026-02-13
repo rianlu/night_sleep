@@ -331,8 +331,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Ticker
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.manrope(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                    _MiniMarqueeText(
+                      text: item.title,
+                      style: GoogleFonts.manrope(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
                     Text(item.artist ?? "夜眠音频", 
                       style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11)),
                   ],
@@ -375,6 +377,94 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Ticker
       endTime: item.extras?['endTime'] ?? item.duration?.inSeconds ?? 0,
       category: item.extras?['category'],
       addedAt: DateTime.now(),
+    );
+  }
+}
+
+class _MiniMarqueeText extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+
+  const _MiniMarqueeText({
+    required this.text,
+    required this.style,
+  });
+
+  @override
+  State<_MiniMarqueeText> createState() => _MiniMarqueeTextState();
+}
+
+class _MiniMarqueeTextState extends State<_MiniMarqueeText> {
+  final ScrollController _controller = ScrollController();
+  bool _shouldAnimate = false;
+  int _runId = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAndStart());
+  }
+
+  @override
+  void didUpdateWidget(covariant _MiniMarqueeText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text || oldWidget.style != widget.style) {
+      _runId++;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _checkAndStart());
+    }
+  }
+
+  @override
+  void dispose() {
+    _runId++;
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _checkAndStart() {
+    if (!mounted || !_controller.hasClients) return;
+    final shouldAnimate = _controller.position.maxScrollExtent > 8;
+    if (_shouldAnimate != shouldAnimate) {
+      setState(() => _shouldAnimate = shouldAnimate);
+    }
+    if (shouldAnimate) {
+      _loop(++_runId);
+    }
+  }
+
+  Future<void> _loop(int runId) async {
+    await Future.delayed(const Duration(milliseconds: 800));
+    while (mounted && runId == _runId && _controller.hasClients && _shouldAnimate) {
+      final max = _controller.position.maxScrollExtent;
+      final forwardMs = (max * 28).clamp(1800, 6000).toInt();
+      await _controller.animateTo(
+        max,
+        duration: Duration(milliseconds: forwardMs),
+        curve: Curves.linear,
+      );
+      if (!mounted || runId != _runId || !_controller.hasClients) return;
+      await Future.delayed(const Duration(milliseconds: 600));
+      await _controller.animateTo(
+        0,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOutCubic,
+      );
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      controller: _controller,
+      scrollDirection: Axis.horizontal,
+      physics: const NeverScrollableScrollPhysics(),
+      child: Text(
+        widget.text,
+        maxLines: 1,
+        softWrap: false,
+        style: widget.style,
+      ),
     );
   }
 }

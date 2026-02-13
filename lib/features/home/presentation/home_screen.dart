@@ -8,8 +8,6 @@ import 'package:night_sleep/data/models/category_item.dart';
 import 'package:night_sleep/data/models/video_item.dart';
 import 'package:night_sleep/features/import/presentation/import_screen.dart';
 import 'package:night_sleep/features/import/presentation/audio_parser_screen.dart';
-import 'package:night_sleep/features/import/presentation/audio_parser_screen.dart';
-import 'package:night_sleep/features/player/presentation/player_screen.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:night_sleep/features/player/data/audio_player_handler.dart';
 import 'package:night_sleep/features/import/presentation/category_management_screen.dart';
@@ -354,15 +352,12 @@ class _HomeScreenState extends State<HomeScreen> {
                        const SizedBox(height: 6),
                        Row(
                          children: [
-                           Container(
-                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                             decoration: BoxDecoration(
-                               color: ProMaxColors.stitchPrimary.withValues(alpha: 0.1),
-                               borderRadius: BorderRadius.circular(4),
-                             ),
+                           Expanded(
                              child: Text(
-                               video.category ?? "未分类",
-                               style: TextStyle(color: ProMaxColors.stitchPrimary.withValues(alpha: 0.9), fontSize: 10, fontWeight: FontWeight.bold),
+                               video.artist.isNotEmpty ? video.artist : "未知UP主",
+                               maxLines: 1,
+                               overflow: TextOverflow.ellipsis,
+                               style: const TextStyle(color: ProMaxColors.stitchTextMuted, fontSize: 11),
                              ),
                            ),
                            const SizedBox(width: 8),

@@ -3,12 +3,14 @@ import 'dart:math' as math;
 import 'dart:ui';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:night_sleep/core/theme/promax_colors.dart';
 import 'package:night_sleep/data/models/video_item.dart';
 import 'package:night_sleep/features/player/data/audio_player_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PlayerScreen extends StatefulWidget {
   final VideoItem videoItem;
@@ -133,7 +135,11 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
                                 letterSpacing: 0.5,
                               ),
                             ),
-                            const SizedBox(width: 48),
+                            IconButton(
+                              tooltip: "打开原视频",
+                              icon: const Icon(Icons.open_in_new_rounded, size: 24, color: ProMaxColors.stitchTextLight),
+                              onPressed: () => _openOriginalVideo(context, mediaItem),
+                            ),
                           ],
                         ),
                         const Spacer(flex: 2),
@@ -552,6 +558,37 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
       backgroundColor: Colors.transparent,
       builder: (context) => _SleepTimerSheet(handler: audioHandler),
     );
+  }
+
+  Future<void> _openOriginalVideo(BuildContext context, MediaItem? mediaItem) async {
+    final id = mediaItem?.id ?? _displayItem.id;
+    final sourceUrl = _buildSourceUrl(id);
+    final bilibiliAppUri = Uri.parse("bilibili://video/$id");
+
+    final openedInApp = await launchUrl(
+      bilibiliAppUri,
+      mode: LaunchMode.externalNonBrowserApplication,
+    );
+    if (openedInApp) return;
+
+    final openedByWeb = await launchUrl(
+      Uri.parse(sourceUrl),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!openedByWeb) {
+      if (!context.mounted) return;
+      await Clipboard.setData(ClipboardData(text: sourceUrl));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("无法打开哔哩哔哩，已复制视频链接")),
+      );
+    }
+  }
+
+  String _buildSourceUrl(String id) {
+    if (id.startsWith("BV")) {
+      return "https://www.bilibili.com/video/$id";
+    }
+    return id;
   }
 
   String _formatDuration(Duration d) {

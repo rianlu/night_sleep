@@ -43,6 +43,7 @@ dependencies:
   google_fonts: ^8.0.1
   intl: ^0.20.2
   dio: ^5.9.1
+  url_launcher: ^6.3.1
   shared_preferences: ^2.5.4
   html: ^0.15.6
   receive_sharing_intent: ^1.8.1
