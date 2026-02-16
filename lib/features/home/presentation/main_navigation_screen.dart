@@ -6,7 +6,7 @@ import 'package:night_sleep/data/models/video_item.dart';
 import 'package:night_sleep/features/import/presentation/import_screen.dart';
 import 'package:night_sleep/features/home/presentation/home_screen.dart';
 import 'package:night_sleep/features/home/presentation/widgets/stitch_bottom_nav_bar.dart';
-import 'package:night_sleep/features/stats/presentation/sleep_report_screen.dart';
+import 'package:night_sleep/features/ambience/presentation/ambience_screen.dart';
 import 'package:night_sleep/features/settings/presentation/profile_screen.dart';
 import 'package:night_sleep/features/player/presentation/player_screen.dart';
 import 'package:night_sleep/features/import/presentation/widgets/clipboard_popup.dart';
@@ -30,7 +30,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Ticker
   late final AnimationController _playerExpandController;
   final List<Widget> _screens = [
     const HomeScreen(),
-    const SleepReportScreen(),
+    const AmbienceScreen(),
     const ProfileScreen(),
   ];
 
@@ -127,9 +127,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Ticker
           // Fetch real data if not already fetching/fetched
           if (cachedVideo == null) {
             final importService = BilibiliImportService();
-            importService.resolveShortLink(text).then((bvId) {
-              if (bvId != null) {
-                return importService.fetchVideoInfo(bvId);
+            importService.resolveLink(text).then((linkInfo) {
+              if (linkInfo != null) {
+                return importService.fetchVideoInfo(linkInfo.bvId, page: linkInfo.page);
               }
               return null;
             }).then((video) {

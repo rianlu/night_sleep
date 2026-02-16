@@ -49,14 +49,17 @@ class _ImportScreenState extends State<ImportScreen> {
     });
 
     try {
-      // 解析短链接或普通链接
-      final resolvedId = await _importService.resolveShortLink(text);
+      // 解析短链接或普通链接（保留分P信息）
+      final resolvedLink = await _importService.resolveLink(text);
       
-      if (resolvedId == null) {
+      if (resolvedLink == null) {
         throw "无法识别 BV 号，请检查链接";
       }
 
-      final video = await _importService.fetchVideoInfo(resolvedId);
+      final video = await _importService.fetchVideoInfo(
+        resolvedLink.bvId,
+        page: resolvedLink.page,
+      );
       
       if (video != null) {
          if (mounted) {

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:audio_service/audio_service.dart';
 import 'package:dio/dio.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:night_sleep/core/utils/bilibili_id_utils.dart';
 import 'package:night_sleep/data/models/video_item.dart';
 import 'package:night_sleep/features/import/data/bilibili_video_audio_service.dart';
 
@@ -305,6 +306,7 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
       skipEnd: item.extras?['skipEnd'] ?? 0,
       filePath: item.extras?['filePath'],
       cid: item.extras?['cid'],
+      page: item.extras?['page'],
       category: item.extras?['category'],
       addedAt: DateTime.now(), // 播放时不重要
     );
@@ -355,6 +357,7 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
         'filePath': item.filePath,
         'skipEnd': item.skipEnd,
         'cid': item.cid,
+        'page': item.page,
         'category': item.category,
       }
     );
@@ -431,19 +434,20 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
       source = item.filePath;
     } else if (item.id.startsWith('BV')) {
       try {
+        final bvid = BilibiliIdUtils.extractBvId(item.id);
         final videoAudioService = BilibiliVideoAudioService();
         String? cid = item.cid;
         
         if (cid == null) {
           final dio = Dio();
-          final response = await dio.get('https://api.bilibili.com/x/web-interface/view', queryParameters: {'bvid': item.id});
+          final response = await dio.get('https://api.bilibili.com/x/web-interface/view', queryParameters: {'bvid': bvid});
           if (response.statusCode == 200 && response.data['code'] == 0) {
             cid = response.data['data']['cid']?.toString();
           }
         }
 
         if (cid != null) {
-          final url = await videoAudioService.getVideoAudioUrl(item.id, int.parse(cid));
+          final url = await videoAudioService.getVideoAudioUrl(bvid, int.parse(cid));
           if (url != null) source = url;
         }
       } catch (e) {
@@ -454,9 +458,10 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     source ??= 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'; 
     
     try {
+      final bvid = item.id.startsWith('BV') ? BilibiliIdUtils.extractBvId(item.id) : item.id;
       final headers = {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Referer': 'https://www.bilibili.com/video/${item.id}',
+        'Referer': 'https://www.bilibili.com/video/$bvid',
       };
       await _player.setAudioSource(AudioSource.uri(Uri.parse(source), headers: headers));
       

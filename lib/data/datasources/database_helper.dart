@@ -48,6 +48,7 @@ class DatabaseHelper {
         endTime INTEGER,
         filePath TEXT,
         cid TEXT,
+        page INTEGER,
         category TEXT,
         addedAt INTEGER NOT NULL
       )
@@ -80,6 +81,8 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE ${AppConstants.tableVideos} ADD COLUMN endTime INTEGER');
       // 添加CID列，用于加速音频解析
       await db.execute('ALTER TABLE ${AppConstants.tableVideos} ADD COLUMN cid TEXT');
+      // 添加分P页码
+      await db.execute('ALTER TABLE ${AppConstants.tableVideos} ADD COLUMN page INTEGER');
       // 添加Category列
       await db.execute('ALTER TABLE ${AppConstants.tableVideos} ADD COLUMN category TEXT');
     }
@@ -116,6 +119,9 @@ class DatabaseHelper {
     }
     if (!columnNames.contains('cid')) {
       await db.execute('ALTER TABLE ${AppConstants.tableVideos} ADD COLUMN cid TEXT');
+    }
+    if (!columnNames.contains('page')) {
+      await db.execute('ALTER TABLE ${AppConstants.tableVideos} ADD COLUMN page INTEGER');
     }
     if (!columnNames.contains('category')) {
       await db.execute('ALTER TABLE ${AppConstants.tableVideos} ADD COLUMN category TEXT');

@@ -4,6 +4,7 @@ import 'package:night_sleep/core/constants/app_constants.dart';
 import 'package:night_sleep/core/theme/app_theme.dart';
 import 'package:night_sleep/features/home/presentation/main_navigation_screen.dart';
 import 'package:night_sleep/features/player/data/audio_player_handler.dart';
+import 'package:night_sleep/features/ambience/logic/ambience_provider.dart';
 import 'package:provider/provider.dart';
 
 late AudioHandler audioHandler;
@@ -31,6 +32,7 @@ class NightSleepApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         Provider<AudioHandler>(create: (_) => audioHandler),
+        ChangeNotifierProvider(create: (_) => AmbienceProvider(audioHandler)),
       ],
       child: MaterialApp(
         title: AppConstants.appName,

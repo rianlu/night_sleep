@@ -5,6 +5,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:night_sleep/core/theme/promax_colors.dart';
+import 'package:night_sleep/core/utils/bilibili_id_utils.dart';
 import 'package:night_sleep/data/models/video_item.dart';
 import 'package:night_sleep/features/player/data/audio_player_handler.dart';
 import 'package:provider/provider.dart';
@@ -562,8 +563,10 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
 
   Future<void> _openOriginalVideo(BuildContext context, MediaItem? mediaItem) async {
     final id = mediaItem?.id ?? _displayItem.id;
-    final sourceUrl = _buildSourceUrl(id);
-    final bilibiliAppUri = Uri.parse("bilibili://video/$id");
+    final page = (mediaItem?.extras?['page'] as int?) ?? BilibiliIdUtils.extractPageFromItemId(id);
+    final bvid = BilibiliIdUtils.extractBvId(id);
+    final sourceUrl = _buildSourceUrl(bvid, page: page);
+    final bilibiliAppUri = Uri.parse("bilibili://video/$bvid");
 
     final openedInApp = await launchUrl(
       bilibiliAppUri,
@@ -584,11 +587,14 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
     }
   }
 
-  String _buildSourceUrl(String id) {
-    if (id.startsWith("BV")) {
-      return "https://www.bilibili.com/video/$id";
+  String _buildSourceUrl(String bvid, {int? page}) {
+    if (bvid.startsWith("BV")) {
+      if (page != null && page > 1) {
+        return "https://www.bilibili.com/video/$bvid?p=$page";
+      }
+      return "https://www.bilibili.com/video/$bvid";
     }
-    return id;
+    return bvid;
   }
 
   String _formatDuration(Duration d) {

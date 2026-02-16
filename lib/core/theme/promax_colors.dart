@@ -43,4 +43,9 @@ class ProMaxColors {
   static const Color stitchReportBg = stitchBackground;
   static const Color stitchReportCardBg = stitchCardBg;
   static const Color stitchReportAccent = stitchPrimary;
+  
+  // Ambience Space
+  static const Color ambienceBg = Color(0xFF1A1412);
+  static const Color ambienceAmber = Color(0xFFFFB13B);
+  static const Color ambienceCardBg = Color(0xFF2D241E);
 }

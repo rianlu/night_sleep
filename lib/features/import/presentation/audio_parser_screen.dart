@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:night_sleep/core/theme/promax_colors.dart';
+import 'package:night_sleep/core/utils/bilibili_id_utils.dart';
 import 'package:night_sleep/data/datasources/database_helper.dart';
 import 'package:night_sleep/data/models/category_item.dart';
 import 'package:night_sleep/data/models/video_item.dart';
@@ -496,10 +497,11 @@ class _AudioParserScreenState extends State<AudioParserScreen> {
       if (source == null) {
         throw Exception('no audio source');
       }
+      final bvid = previewItem.id.startsWith('BV') ? BilibiliIdUtils.extractBvId(previewItem.id) : previewItem.id;
 
       final headers = {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Referer': 'https://www.bilibili.com/video/${previewItem.id}',
+        'Referer': 'https://www.bilibili.com/video/$bvid',
       };
 
       if (previewItem.filePath != null && previewItem.filePath!.isNotEmpty) {
@@ -533,19 +535,20 @@ class _AudioParserScreenState extends State<AudioParserScreen> {
 
     if (item.id.startsWith('BV')) {
       try {
+        final bvid = BilibiliIdUtils.extractBvId(item.id);
         final videoAudioService = BilibiliVideoAudioService();
         String? cid = item.cid;
 
         if (cid == null) {
           final dio = Dio();
-          final response = await dio.get('https://api.bilibili.com/x/web-interface/view', queryParameters: {'bvid': item.id});
+          final response = await dio.get('https://api.bilibili.com/x/web-interface/view', queryParameters: {'bvid': bvid});
           if (response.statusCode == 200 && response.data['code'] == 0) {
             cid = response.data['data']['cid']?.toString();
           }
         }
 
         if (cid != null) {
-          return await videoAudioService.getVideoAudioUrl(item.id, int.parse(cid));
+          return await videoAudioService.getVideoAudioUrl(bvid, int.parse(cid));
         }
       } catch (_) {
         return null;

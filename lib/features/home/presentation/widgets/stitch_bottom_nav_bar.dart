@@ -37,7 +37,7 @@ class StitchBottomNavBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _buildNavItem(0, Icons.home_rounded),
-              _buildNavItem(1, Icons.bar_chart_rounded),
+              _buildNavItem(1, Icons.spa_rounded),
               _buildNavItem(2, Icons.person_rounded),
             ],
           ),

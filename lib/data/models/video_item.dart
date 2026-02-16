@@ -9,6 +9,7 @@ class VideoItem {
   final int endTime; // 自定义结束时间 (秒)
   final String? filePath; // 本地文件路径 (下载后使用，流媒体模式下为null)
   final String? cid; // Bilibili CID，用于快速音频解析
+  final int? page; // Bilibili 分P页码（从1开始）
   final String? category; // 分类 (例如："电台", "白噪音")
   final DateTime addedAt; // 添加时间
 
@@ -23,6 +24,7 @@ class VideoItem {
     required this.endTime,
     this.filePath,
     this.cid,
+    this.page,
     this.category,
     required this.addedAt,
   });
@@ -39,6 +41,7 @@ class VideoItem {
       'endTime': endTime,
       'filePath': filePath,
       'cid': cid,
+      'page': page,
       'category': category,
       'addedAt': addedAt.millisecondsSinceEpoch,
     };
@@ -56,6 +59,7 @@ class VideoItem {
       endTime: map['endTime'] ?? map['duration'], // 如果未设置，默认为总时长
       filePath: map['filePath'],
       cid: map['cid'],
+      page: map['page'],
       category: map['category'],
       addedAt: DateTime.fromMillisecondsSinceEpoch(map['addedAt']),
     );
@@ -71,6 +75,7 @@ class VideoItem {
     int? endTime,
     String? filePath,
     String? cid,
+    int? page,
     String? category,
   }) {
     return VideoItem(
@@ -84,6 +89,7 @@ class VideoItem {
       endTime: endTime ?? this.endTime,
       filePath: filePath ?? this.filePath,
       cid: cid ?? this.cid,
+      page: page ?? this.page,
       category: category ?? this.category,
       addedAt: addedAt,
     );
