@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SleepFlow 夜眠 - 播放队列管理</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Noto+Sans+SC:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "sunset-amber": "#F59E0B",
+                        "soft-cream": "#FFFBF2",
+                        "warm-white": "#FFFFFF",
+                        "soft-peach": "#FFEDD5",
+                        "warm-brown": "#78350F",
+                        "warm-brown-light": "#92400E",
+                        "border-warm": "#FDE68A",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "Noto Sans SC", "sans-serif"],
+                        "sans": ["Noto Sans SC", "Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1.25rem",
+                        "3xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            background-color: #FFFBF2;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .bottom-sheet-shadow {
+            box-shadow: 0 -10px 40px -10px rgba(120, 53, 15, 0.15);
+        }
+        .active-glow {
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-warm-brown min-h-screen flex flex-col bg-soft-cream overflow-hidden">
+<div class="fixed inset-0 opacity-40 pointer-events-none scale-95 origin-top grayscale-[20%] blur-[2px]">
+<header class="flex items-center justify-between px-6 pt-10 pb-4 shrink-0">
+<div class="flex flex-col">
+<h1 class="text-xl font-bold tracking-tight text-warm-brown">今晚播放</h1>
+<p class="text-[10px] text-warm-brown/60 font-medium uppercase tracking-widest">SleepFlow (夜眠)</p>
+</div>
+</header>
+<main class="px-4">
+<div class="relative overflow-hidden rounded-3xl bg-warm-white border border-soft-peach p-6">
+<div class="flex gap-5 items-center mb-6">
+<div class="w-20 h-20 rounded-2xl bg-soft-peach"></div>
+<div class="flex-1 h-12 bg-soft-peach/30 rounded-lg"></div>
+</div>
+<div class="h-2 w-full bg-soft-peach rounded-full mb-6"></div>
+<div class="flex items-center justify-center gap-10 mb-6">
+<div class="w-8 h-8 rounded-full bg-soft-peach"></div>
+<div class="w-16 h-16 rounded-full bg-sunset-amber"></div>
+<div class="w-8 h-8 rounded-full bg-soft-peach"></div>
+</div>
+</div>
+</main>
+</div>
+<div class="fixed inset-0 bg-warm-brown/20 backdrop-blur-[2px] z-10"></div>
+<div class="fixed bottom-0 left-0 right-0 z-20 bg-soft-cream rounded-t-[32px] bottom-sheet-shadow flex flex-col max-h-[92vh] border-t border-white/50">
+<div class="flex justify-center pt-3 pb-1 shrink-0">
+<div class="w-10 h-1 bg-warm-brown/10 rounded-full"></div>
+</div>
+<header class="px-6 py-4 flex items-center justify-between shrink-0">
+<div class="flex items-center gap-3">
+<button class="w-8 h-8 flex items-center justify-center rounded-full bg-warm-brown/5 text-warm-brown/60">
+<span class="material-symbols-outlined text-xl">close</span>
+</button>
+<h2 class="text-lg font-bold text-warm-brown">播放队列 <span class="text-warm-brown/40 font-display font-medium ml-1">(12)</span></h2>
+</div>
+<button class="text-xs font-bold text-sunset-amber px-3 py-1.5 rounded-full hover:bg-sunset-amber/5 transition-colors">
+                清空全部
+            </button>
+</header>
+<div class="flex-1 overflow-y-auto px-4 pb-8 no-scrollbar">
+<div class="space-y-2">
+<div class="flex items-center gap-3 p-4 bg-warm-white border border-sunset-amber/40 rounded-2xl active-glow transition-all">
+<div class="text-warm-brown/20">
+<span class="material-symbols-outlined text-lg">drag_indicator</span>
+</div>
+<div class="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-soft-peach relative">
+<img class="w-full h-full object-cover" data-alt="Deep blue starry night sky landscape" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdwI3xstSgi5TV1N6hjNhQpbin1j0sKmNOjyRCAFJj4VybJTgy9Dc8xjh4GhTGZ3bzH_nYXDgvvz9wtZBTRdgyweK0m4ENbGavAHNPC-kmUCHRw-GByJ7yD8e_FhururAPNKF-k4mRqCrdRBDQHGASf-C8FMVkD2z4mv8FKPsvCl_H0CTrzFQiitmwPHGBUqHHcNnJd_QJ2STsjMYhATVTpFRSt31unh1J0d6mISEeibJByiJlcHVz9tDhvLVhUHVc5PVAkvphGG4"/>
+<div class="absolute inset-0 bg-sunset-amber/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-sunset-amber text-lg font-bold">equalizer</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="text-sm font-bold text-sunset-amber truncate">深海氛围音</h4>
+<p class="text-[11px] text-warm-brown/50">夜间律动 • 00:00-12:45</p>
+</div>
+<button class="text-warm-brown/20 hover:text-red-400">
+<span class="material-symbols-outlined text-lg">close</span>
+</button>
+</div>
+<div class="flex items-center gap-3 p-4 bg-warm-white/60 rounded-2xl border border-transparent transition-all">
+<div class="text-warm-brown/20">
+<span class="material-symbols-outlined text-lg">drag_indicator</span>
+</div>
+<div class="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-soft-peach/50">
+<img class="w-full h-full object-cover opacity-80" data-alt="Calm forest at night silhouettes" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyiEwdYQmXwXUtl-ISZkCP3cScleV46jkD0aET02HB9S7vhMx1UDQR_nzTDtcDiMwM0ZGaAJrP6Mut4HQ74uPSd7bWf8cMDMjySxHnAOGamjA8rlrqp4FYN9QcR4Es6Nk46J8Jr-DbcEgwL0V0_fRRz0J0cn-HYqN4D8EZ2XoSzqQ1AP05b0U4nIIolaxTY58mUp9OP1ELZrCpfX5IEOd92cLaR0PAR6r9RoRcfjtirKyz1PTl-l353yiTA7Wunq1HGAP2m9qam10"/>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="text-sm font-bold text-warm-brown/70 truncate">屋檐下的雨声</h4>
+<p class="text-[11px] text-warm-brown/40">大自然混响 • 05:00-25:30</p>
+</div>
+<button class="text-warm-brown/20 hover:text-red-400">
+<span class="material-symbols-outlined text-lg">close</span>
+</button>
+</div>
+<div class="flex items-center gap-3 p-4 bg-warm-white/60 rounded-2xl border border-transparent transition-all">
+<div class="text-warm-brown/20">
+<span class="material-symbols-outlined text-lg">drag_indicator</span>
+</div>
+<div class="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-soft-peach/50">
+<img class="w-full h-full object-cover opacity-80" data-alt="Misty mountain landscape purple hues" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDft0xMV7YT5u_fzsNmHwd_5jNi3JPoxGru9OJzmO2xXJxzb34dmxrV4c6DCdBitu1JOc0ihXxtNji5KvTdm3B2GYVb8-GlBosLlOJhkxeofoGszc5oPHRLpS_moizYY6xPSzGu3ol_FL1lHleioYejpcnIyfe054mGBd95lH0QlUs_uSYlKy2lfb1pioe7Y5HRhpWSiiC0u8ph_JT8jgXLUlL-tqcfS0X7oycas2ayesyhXyCEir_UNviKBnneLUJWva_VagivuVg"/>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="text-sm font-bold text-warm-brown/70 truncate">Lo-Fi 助眠学习曲</h4>
+<p class="text-[11px] text-warm-brown/40">冷调节拍 • 01:20-08:30</p>
+</div>
+<button class="text-warm-brown/20 hover:text-red-400">
+<span class="material-symbols-outlined text-lg">close</span>
+</button>
+</div>
+<div class="flex items-center gap-3 p-4 bg-warm-white/60 rounded-2xl border border-transparent transition-all">
+<div class="text-warm-brown/20">
+<span class="material-symbols-outlined text-lg">drag_indicator</span>
+</div>
+<div class="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-soft-peach/50">
+<img class="w-full h-full object-cover opacity-80" data-alt="Abstract dark blue water pattern" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNQD3P9c1u4XLyhk98OVomfzreUbYxbRIXxXC2-QubLv8xjUwU_FJt4cjlEXejV9XlvBnfBdDF4Dfbdz8yBzx7diuPM8xxLaKTEmCBgKrH6VTiLqHbXZBtv6hPXzXzSKhAeK4O1KUEoJvbsmYuziHtZD7kekdXdcnYJLlWrzQwn6_w6RzdgzRQXeV4IH-k9rtcQQrECjvd4nBvua5bGW2CgGyNT0Udtk11p-24TYzQftONuID7uFO487YNjfTbk737KKi15EPg9N4"/>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="text-sm font-bold text-warm-brown/70 truncate">柴火燃烧的噼啪声</h4>
+<p class="text-[11px] text-warm-brown/40">温暖炉火 • 00:00-60:00</p>
+</div>
+<button class="text-warm-brown/20 hover:text-red-400">
+<span class="material-symbols-outlined text-lg">close</span>
+</button>
+</div>
+<div class="flex items-center gap-3 p-4 bg-warm-white/60 rounded-2xl border border-transparent transition-all">
+<div class="text-warm-brown/20">
+<span class="material-symbols-outlined text-lg">drag_indicator</span>
+</div>
+<div class="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-soft-peach/50">
+<img class="w-full h-full object-cover opacity-80" data-alt="Abstract water bubbles" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNQD3P9c1u4XLyhk98OVomfzreUbYxbRIXxXC2-QubLv8xjUwU_FJt4cjlEXejV9XlvBnfBdDF4Dfbdz8yBzx7diuPM8xxLaKTEmCBgKrH6VTiLqHbXZBtv6hPXzXzSKhAeK4O1KUEoJvbsmYuziHtZD7kekdXdcnYJLlWrzQwn6_w6RzdgzRQXeV4IH-k9rtcQQrECjvd4nBvua5bGW2CgGyNT0Udtk11p-24TYzQftONuID7uFO487YNjfTbk737KKi15EPg9N4"/>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="text-sm font-bold text-warm-brown/70 truncate">冥想波导引</h4>
+<p class="text-[11px] text-warm-brown/40">身心修复 • 10:00-30:00</p>
+</div>
+<button class="text-warm-brown/20 hover:text-red-400">
+<span class="material-symbols-outlined text-lg">close</span>
+</button>
+</div>
+<div class="flex items-center gap-3 p-4 bg-warm-white/60 rounded-2xl border border-transparent transition-all">
+<div class="text-warm-brown/20">
+<span class="material-symbols-outlined text-lg">drag_indicator</span>
+</div>
+<div class="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-soft-peach/50">
+<div class="w-full h-full bg-soft-peach flex items-center justify-center">
+<span class="material-symbols-outlined text-warm-brown/20">music_note</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="text-sm font-bold text-warm-brown/70 truncate">白噪音 - 咖啡馆</h4>
+<p class="text-[11px] text-warm-brown/40">都市环境 • 00:00-45:00</p>
+</div>
+<button class="text-warm-brown/20 hover:text-red-400">
+<span class="material-symbols-outlined text-lg">close</span>
+</button>
+</div>
+</div>
+<div class="py-6 flex justify-center">
+<span class="text-[10px] font-bold text-warm-brown/30 uppercase tracking-[0.2em]">End of Queue</span>
+</div>
+</div>
+<footer class="shrink-0 px-6 pt-3 pb-8 bg-warm-white/50 border-t border-soft-peach/30 backdrop-blur-sm">
+<p class="text-center text-[11px] text-warm-brown/40 font-medium">
+                更多设置请前往“我的”页面
+            </p>
+</footer>
+</div>
+
+</body></html>

@@ -4,4 +4,5 @@ class AppConstants {
   static const int dbVersion = 3; // 数据库版本
   static const String tableVideos = 'videos'; // 视频表名
   static const String tableCategories = 'categories'; // 分类表名
+  static const double compactBreakpoint = 411; // 紧凑布局断点
 }

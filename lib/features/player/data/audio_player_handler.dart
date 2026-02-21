@@ -37,7 +37,8 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
       if (state.processingState == ProcessingState.completed) {
         if (_stopAtEndOfTrack) {
           _stopAtEndOfTrack = false; // 重置标志
-          stop();
+          pause();
+          seek(Duration(seconds: _currentItem?.startTime ?? 0));
         } else {
           skipToNext();
         }
@@ -93,6 +94,13 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     playbackState.add(playbackState.value);
   }
 
+  Future<void> setPlaybackSpeed(double speed) async {
+    await _player.setSpeed(speed);
+    if (playbackState.hasValue) {
+      playbackState.add(playbackState.value.copyWith(speed: speed));
+    }
+  }
+
   void _checkPlaybackRange(Duration position) {
     if (_currentItem != null) {
       final startTime = _currentItem!.startTime;
@@ -103,12 +111,14 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
         if (position >= end) {
           if (_stopAtEndOfTrack) {
             _stopAtEndOfTrack = false;
-            stop();
+            pause();
+            seek(Duration(seconds: startTime));
           } else if (_player.loopMode == LoopMode.one) {
             // 单曲循环：回到设定的开始时间
             seek(Duration(seconds: startTime));
           } else if (queue.value.length <= 1) {
-            stop();
+            pause();
+            seek(Duration(seconds: startTime));
           } else {
             skipToNext();
           }
@@ -217,7 +227,9 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
       if (_player.loopMode == LoopMode.all) {
         nextIndex = 0;
       } else {
-        return; // 队列结束
+        await pause();
+        await seek(Duration(seconds: _currentItem?.startTime ?? 0));
+        return; // 队列结束，停止播放并重置进度
       }
     }
 
@@ -538,7 +550,6 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
         MediaControl.skipToPrevious,
         if (_player.playing) MediaControl.pause else MediaControl.play,
         MediaControl.skipToNext,
-        MediaControl.stop,
       ],
       systemActions: const {
         MediaAction.seek,

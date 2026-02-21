@@ -1,84 +1,142 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:night_sleep/core/theme/promax_colors.dart';
+import 'package:night_sleep/core/theme/app_palette.dart';
+import 'package:night_sleep/core/theme/theme_tokens.dart';
 
 class AppTheme {
-  // Canonical Colors from ProMaxColors
-  static const Color primaryColor = ProMaxColors.stitchPrimary; // Amber Gold #FFB13B
-  static const Color secondaryColor = Color(0xFF10B981); // Keep functional green
-  static const Color backgroundColor = ProMaxColors.stitchBackground; // Deep Warm Coffee #1A1412
-  static const Color surfaceColor = ProMaxColors.stitchCardBg; // Lighter Coffee #2D241E
-  static const Color textColor = ProMaxColors.stitchTextLight; // #E8E0D9
-  static const Color secondaryTextColor = ProMaxColors.stitchTextMuted; // #B9A89D
+  static ThemeData build(ThemeTokens t) {
+    final baseTextTheme = GoogleFonts.notoSansScTextTheme().apply(
+      bodyColor: t.textPrimary,
+      displayColor: t.textPrimary,
+    );
+    final textTheme = baseTextTheme;
 
-  static const LinearGradient backgroundGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [
-      ProMaxColors.stitchBackground,
-      Color(0xFF0F0B09), // Even darker coffee at bottom for depth
-    ],
-  );
-
-  /// Deep Warm Coffee Theme
-  static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: backgroundColor,
-      primaryColor: primaryColor,
-      colorScheme: const ColorScheme.dark(
-        primary: primaryColor,
-        secondary: secondaryColor,
-        surface: surfaceColor,
-        onPrimary: Color(0xFF1A1412), // Dark text on amber
-        onSurface: textColor,
-        background: backgroundColor,
+      visualDensity: VisualDensity.standard,
+      scaffoldBackgroundColor: t.bgBase,
+      colorScheme: ColorScheme.light(
+        primary: t.accent,
+        onPrimary: t.accentOn,
+        secondary: t.bgSoft,
+        onSecondary: t.pillFg,
+        surface: t.bgCard,
+        onSurface: t.textPrimary,
+        outline: t.border,
       ),
-      textTheme: GoogleFonts.outfitTextTheme(
-        ThemeData.dark().textTheme,
-      ).apply(
-        bodyColor: textColor,
-        displayColor: textColor,
+      textTheme: textTheme,
+      splashColor: t.accent.withValues(alpha: 0.1),
+      highlightColor: t.accent.withValues(alpha: 0.06),
+      appBarTheme: AppBarTheme(
+        backgroundColor: t.bgBase,
+        elevation: 0,
+        foregroundColor: t.textPrimary,
+        titleTextStyle: textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: t.textPrimary,
+        ),
       ),
       cardTheme: CardThemeData(
-        color: surfaceColor,
+        color: t.bgCard,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.05), width: 1),
+          borderRadius: BorderRadius.circular(t.radiusCard),
+          side: BorderSide(color: t.border),
         ),
       ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        titleTextStyle: TextStyle(
-          color: textColor,
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.5,
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: t.bgCard,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
         ),
-        iconTheme: IconThemeData(color: textColor),
+        hintStyle: TextStyle(color: t.textSecondary),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(t.radiusControl),
+          borderSide: BorderSide(color: t.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(t.radiusControl),
+          borderSide: BorderSide(color: t.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(t.radiusControl),
+          borderSide: BorderSide(color: t.accent, width: 1.4),
+        ),
       ),
       sliderTheme: SliderThemeData(
-        activeTrackColor: primaryColor,
-        inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
-        thumbColor: primaryColor,
-        trackHeight: 4,
-        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-        overlayColor: primaryColor.withValues(alpha: 0.2),
-      ),
-      iconTheme: const IconThemeData(color: textColor),
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: primaryColor),
+        activeTrackColor: t.accent,
+        inactiveTrackColor: t.progressInactive,
+        thumbColor: t.bgCard,
+        overlayColor: t.accent.withValues(alpha: 0.1),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryColor,
-          foregroundColor: const Color(0xFF140F0D), // Dark text on button
-          textStyle: const TextStyle(fontWeight: FontWeight.bold),
+          backgroundColor: t.accent,
+          foregroundColor: t.accentOn,
+          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(t.radiusControl),
+          ),
+          minimumSize: const Size.fromHeight(48),
         ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: t.textSecondary,
+          side: BorderSide(color: t.border),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(t.radiusPill),
+          ),
+        ),
+      ),
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: t.bgBase,
+        selectedItemColor: t.accent,
+        unselectedItemColor: t.navInactive,
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: _CreamSunsetPageTransitionsBuilder(),
+          TargetPlatform.iOS: _CreamSunsetPageTransitionsBuilder(),
+          TargetPlatform.macOS: _CreamSunsetPageTransitionsBuilder(),
+          TargetPlatform.windows: _CreamSunsetPageTransitionsBuilder(),
+          TargetPlatform.linux: _CreamSunsetPageTransitionsBuilder(),
+        },
+      ),
+      extensions: [AppPalette.fromTokens(t)],
+    );
+  }
+}
+
+class _CreamSunsetPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _CreamSunsetPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+
+    return FadeTransition(
+      opacity: curved,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.02),
+          end: Offset.zero,
+        ).animate(curved),
+        child: child,
       ),
     );
   }

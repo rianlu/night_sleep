@@ -20,7 +20,6 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
-    print("NightSleep: Opening database at $path");
     final db = await openDatabase(
       path,
       version: AppConstants.dbVersion,
@@ -29,8 +28,8 @@ class DatabaseHelper {
     );
     try {
       await _ensureSchema(db);
-    } catch (e) {
-      print("NightSleep: Error in _ensureSchema: $e");
+    } catch (_) {
+      // Keep startup resilient if migration check fails in edge environments.
     }
     return db;
   }

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SleepFlow - 奶油晚霞本地库</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "cream-bg": "#FFFBF2",
+                        "ivory-search": "#FDFCF8",
+                        "sunset-amber": "#F59E0B",
+                        "warm-grey": "#4A453E",
+                        "warm-grey-light": "#8C8579",
+                        "inactive-grey": "#9CA3AF",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        body {
+            font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            min-height: max(884px, 100dvh);
+            background-color: #FFFBF2;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .ios-shadow {
+            box-shadow: 0 4px 20px -2px rgba(245, 158, 11, 0.2);
+        }
+    </style>
+<style>
+        body {
+          min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-warm-grey font-display">
+<div class="relative flex h-screen w-full flex-col overflow-hidden max-w-md mx-auto border-x border-amber-100/50 bg-cream-bg">
+<header class="flex items-center justify-between px-6 pt-12 pb-4 sticky top-0 z-20 bg-cream-bg/90 backdrop-blur-md">
+<div>
+<h1 class="text-3xl font-bold tracking-tight text-warm-grey">本地库</h1>
+<p class="text-warm-grey-light text-sm font-medium">SleepFlow (夜眠)</p>
+</div>
+<button class="flex h-12 w-12 items-center justify-center rounded-2xl bg-sunset-amber text-white shadow-lg shadow-sunset-amber/30 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-2xl">add</span>
+</button>
+</header>
+<div class="px-6 py-2">
+<label class="relative flex items-center w-full">
+<span class="material-symbols-outlined absolute left-4 text-warm-grey-light/60 text-xl">search</span>
+<input class="w-full h-12 pl-12 pr-4 bg-ivory-search border border-amber-100 rounded-2xl focus:ring-2 focus:ring-sunset-amber/20 focus:border-sunset-amber/30 text-warm-grey placeholder:text-warm-grey-light/50 text-sm font-medium transition-all" placeholder="搜索 BV、标题或 UP..." type="text"/>
+</label>
+</div>
+<div class="flex-1 overflow-y-auto px-6 space-y-3 pb-32 pt-4 hide-scrollbar">
+<div class="group flex items-center gap-4 p-3 bg-white/40 border border-amber-50 rounded-2xl active:bg-white/80 transition-all duration-200">
+<div class="relative shrink-0">
+<div class="w-16 h-16 rounded-xl bg-cover bg-center shadow-sm" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDX5wSqs5vFFblM4dEakuD3Pnd11Ih57nhxUreL2UoABbPnpD_PLdffky8-Ez6zRwIdgNkcw5pugEqXc6Odr6bGVIM20m4v_N8Uh1L4ORYlz7_meqJjA7_B8g3m1kfWVTq-LmSjZWIPdxV6SJNG4vtw7kSiGbllQ-wYjaa7bPqDx2mQh3GLRGnxAYcFD-4R63kactLiiNf0WHApSqf2tVgX5KXaxVJZO3y-ha7BjngvUyD6qutIJwfYxwKeNSf-F-MLxi-xjNt5CFM');"></div>
+<div class="absolute bottom-1 right-1 bg-black/40 backdrop-blur-md text-[10px] text-white px-1.5 py-0.5 rounded-md font-bold">1:24:00</div>
+</div>
+<div class="flex-1 min-w-0">
+<h3 class="text-sm font-bold text-warm-grey truncate">ASMR 深度睡眠 - 雨声</h3>
+<p class="text-[11px] text-warm-grey-light mt-0.5 uppercase tracking-wide font-medium">UP 主: SleepWalker • 3 个分段</p>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[12px] text-sunset-amber/70">schedule</span>
+<p class="text-[10px] text-sunset-amber/70 font-bold">最近播放: 2小时前</p>
+</div>
+</div>
+<div class="flex items-center">
+<button class="h-10 w-10 flex items-center justify-center rounded-full bg-sunset-amber/10 text-sunset-amber hover:bg-sunset-amber hover:text-white transition-all">
+<span class="material-symbols-outlined text-xl font-bold">add</span>
+</button>
+</div>
+</div>
+<div class="group flex items-center gap-4 p-3 bg-white/40 border border-amber-50 rounded-2xl active:bg-white/80 transition-all duration-200">
+<div class="relative shrink-0">
+<div class="w-16 h-16 rounded-xl bg-cover bg-center shadow-sm" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCE63Mez1jFklYTq4fIsAcbEZmVVKFz5lLNyjTCUQV-RR49-utM2bC8xfrw5P0ASqKDbk0TYyEwMfNKmJFz07mHtxAPVqmO1tF8h8VjfgPmnxlDfNdRJw2IRayrvC-tcsld9WjB3G4P8OlFa0VwP1BV3JzuI-YkzqZJM1MtYpfgLRm1W4iM-vZDBpMGC4KnyNg6yYZ1nhBT_9g__ltZDfoYX-XpkOxcHTtdhyUkBcImORSAuJ-zW6I8YsMWp6v4FUuz20zKwftG7-M');"></div>
+<div class="absolute bottom-1 right-1 bg-black/40 backdrop-blur-md text-[10px] text-white px-1.5 py-0.5 rounded-md font-bold">45:12</div>
+</div>
+<div class="flex-1 min-w-0">
+<h3 class="text-sm font-bold text-warm-grey truncate">深夜编程沉浸氛围 Lo-fi</h3>
+<p class="text-[11px] text-warm-grey-light mt-0.5 uppercase tracking-wide font-medium">UP 主: BiliLoFi • 1 个分段</p>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[12px] text-warm-grey-light/40">schedule</span>
+<p class="text-[10px] text-warm-grey-light/60 font-medium">最近播放: 昨天</p>
+</div>
+</div>
+<div class="flex items-center">
+<button class="h-10 w-10 flex items-center justify-center rounded-full bg-sunset-amber/10 text-sunset-amber hover:bg-sunset-amber hover:text-white transition-all">
+<span class="material-symbols-outlined text-xl font-bold">add</span>
+</button>
+</div>
+</div>
+<div class="group flex items-center gap-4 p-3 bg-white/40 border border-amber-50 rounded-2xl active:bg-white/80 transition-all duration-200">
+<div class="relative shrink-0">
+<div class="w-16 h-16 rounded-xl bg-cover bg-center shadow-sm" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBlfs-ayH0QmO1PuDXYoDrpPVBGDB25tsevHnuvenl7mH9iGQ4cWWkVYyfiUWXqY9cFa_gbrPklSMHo99o0WELismd2BjCCI16ABKUSw0-piedfs1ahIOVGHhVuusRTqE-FCIpkgSrejl2wCJhSozLoGvA7vcuvgQCF2gaJADn2wObJf_ZwDKF8Yq3UQHV8GyhB38VckI9BBkiaztTnwh4QDqYLksA4TAJNhAZ6ikBemAzPDQ5jK_LdAIpYLJccTcE8BWUxqdsxcXU');"></div>
+<div class="absolute bottom-1 right-1 bg-black/40 backdrop-blur-md text-[10px] text-white px-1.5 py-0.5 rounded-md font-bold">28:05</div>
+</div>
+<div class="flex-1 min-w-0">
+<h3 class="text-sm font-bold text-warm-grey truncate">技术访谈：深入浅出 Bilibili API</h3>
+<p class="text-[11px] text-warm-grey-light mt-0.5 uppercase tracking-wide font-medium">UP 主: DevCentral • 1 个分段</p>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[12px] text-warm-grey-light/40">schedule</span>
+<p class="text-[10px] text-warm-grey-light/60 font-medium">从未播放</p>
+</div>
+</div>
+<div class="flex items-center">
+<button class="h-10 w-10 flex items-center justify-center rounded-full bg-sunset-amber/10 text-sunset-amber hover:bg-sunset-amber hover:text-white transition-all">
+<span class="material-symbols-outlined text-xl font-bold">add</span>
+</button>
+</div>
+</div>
+<div class="group flex items-center gap-4 p-3 bg-white/40 border border-amber-50 rounded-2xl active:bg-white/80 transition-all duration-200">
+<div class="relative shrink-0">
+<div class="w-16 h-16 rounded-xl bg-cover bg-center shadow-sm" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBnkHyV8zAFuUqI8mKKLOPaI9BIsbRHbqtkHkQ5lW5epw588AiVZtIeLRLE2ZACE_-2hlJ58DTg33s0MU36K0Wz4zlqqs3PAPwBvwZuyTU9ECkpr9vyIQ3W_rfoDTfiNSilo04evvCMj2N3dB-az_pPk3SH4R-cx_zjsRYjzUO_d-eVtAtnMlorSuqggCla8qu0K3tKpAMng634KZqnZrmk_FKC3Nb-R9mP123Vxt628BsQ_j4MYMHTdh4_03kK76PNWxc7HrCx6po');"></div>
+<div class="absolute bottom-1 right-1 bg-black/40 backdrop-blur-md text-[10px] text-white px-1.5 py-0.5 rounded-md font-bold">2:00:15</div>
+</div>
+<div class="flex-1 min-w-0">
+<h3 class="text-sm font-bold text-warm-grey truncate">星际旅行白噪音</h3>
+<p class="text-[11px] text-warm-grey-light mt-0.5 uppercase tracking-wide font-medium">UP 主: GalacticAudio • P1/12</p>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[12px] text-warm-grey-light/40">schedule</span>
+<p class="text-[10px] text-warm-grey-light/60 font-medium">最近播放: 3天前</p>
+</div>
+</div>
+<div class="flex items-center">
+<button class="h-10 w-10 flex items-center justify-center rounded-full bg-sunset-amber/10 text-sunset-amber hover:bg-sunset-amber hover:text-white transition-all">
+<span class="material-symbols-outlined text-xl font-bold">add</span>
+</button>
+</div>
+</div>
+</div>
+<nav class="flex items-center justify-around h-20 bg-cream-bg/95 backdrop-blur-md border-t border-amber-200/30 absolute bottom-0 w-full px-8 pb-4">
+<a class="flex flex-col items-center gap-1.5 group" href="#">
+<span class="material-symbols-outlined text-inactive-grey group-hover:text-sunset-amber transition-colors text-2xl">home</span>
+<span class="text-[11px] font-bold text-inactive-grey group-hover:text-sunset-amber transition-colors">首页</span>
+</a>
+<a class="flex flex-col items-center gap-1.5 group" href="#">
+<div class="relative">
+<span class="material-symbols-outlined text-sunset-amber fill-1 text-2xl">library_music</span>
+<div class="absolute -top-1 -right-1 w-1.5 h-1.5 bg-sunset-amber rounded-full shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
+</div>
+<span class="text-[11px] font-bold text-sunset-amber">本地库</span>
+</a>
+<a class="flex flex-col items-center gap-1.5 group" href="#">
+<span class="material-symbols-outlined text-inactive-grey group-hover:text-sunset-amber transition-colors text-2xl">person</span>
+<span class="text-[11px] font-bold text-inactive-grey group-hover:text-sunset-amber transition-colors">我的</span>
+</a>
+</nav>
+</div>
+
+</body></html>

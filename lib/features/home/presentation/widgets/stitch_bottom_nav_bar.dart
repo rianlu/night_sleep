@@ -1,76 +1,111 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:night_sleep/core/theme/promax_colors.dart';
+import 'package:night_sleep/core/constants/app_constants.dart';
+import 'package:night_sleep/core/theme/app_palette.dart';
 
 class StitchBottomNavBar extends StatelessWidget {
-  final int currentIndex;
-  final Function(int) onTap;
-
   const StitchBottomNavBar({
     super.key,
     required this.currentIndex,
     required this.onTap,
   });
 
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(left: 48, right: 48, bottom: 32),
-      height: 64,
-      decoration: BoxDecoration(
-        color: ProMaxColors.stitchReportBg.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+    final theme = Theme.of(context);
+    final width = MediaQuery.sizeOf(context).width;
+    final compact = width <= AppConstants.compactBreakpoint;
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: compact ? 32.0 : 48.0,
+        right: compact ? 32.0 : 48.0,
+        bottom: bottomPadding > 0 ? bottomPadding + 8 : 24.0,
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(32),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildNavItem(0, Icons.home_rounded),
-              _buildNavItem(1, Icons.spa_rounded),
-              _buildNavItem(2, Icons.person_rounded),
-            ],
-          ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(100),
+          boxShadow: [
+            BoxShadow(
+              color: theme.colorScheme.primary.withValues(alpha: 0.15),
+              blurRadius: 24,
+              spreadRadius: 2,
+              offset: const Offset(0, 8),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _item(context, 0, Icons.home_rounded, '首页', compact),
+            _item(context, 1, Icons.library_music_rounded, '媒体库', compact),
+            _item(context, 2, Icons.person_rounded, '我的', compact),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon) {
-    bool isSelected = currentIndex == index;
+  Widget _item(
+    BuildContext context,
+    int idx,
+    IconData icon,
+    String label,
+    bool compact,
+  ) {
+    final theme = Theme.of(context);
+    final palette = theme.extension<AppPalette>()!;
+    final selected = currentIndex == idx;
+
     return GestureDetector(
-      onTap: () => onTap(index),
+      onTap: () => onTap(idx),
       behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: isSelected ? ProMaxColors.stitchReportAccent : Colors.white38,
-            size: 28,
-          ),
-          if (isSelected) ...[
-            const SizedBox(height: 4),
-            Container(
-              width: 4,
-              height: 4,
-              decoration: const BoxDecoration(
-                color: ProMaxColors.stitchReportAccent,
-                shape: BoxShape.circle,
-              ),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.symmetric(
+          horizontal: selected ? 20 : 16,
+          vertical: 12,
+        ),
+        decoration: BoxDecoration(
+          color: selected
+              ? theme.colorScheme.primary.withValues(alpha: 0.12)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(100),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: compact ? 22 : 24,
+              color: selected ? theme.colorScheme.primary : palette.iconMuted,
             ),
+            // 选中的时候展现文字，未选中则只展示图标，增加呼吸感
+            if (selected) ...[
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: compact ? 13 : 14,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ]
           ],
-        ],
+        ),
       ),
     );
   }
