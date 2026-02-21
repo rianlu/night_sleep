@@ -5,6 +5,7 @@ import 'package:night_sleep/core/theme/app_theme.dart';
 import 'package:night_sleep/core/theme/theme_controller.dart';
 import 'package:night_sleep/features/home/presentation/main_navigation_screen.dart';
 import 'package:night_sleep/features/player/data/audio_player_handler.dart';
+import 'package:night_sleep/core/utils/app_preferences.dart';
 import 'package:provider/provider.dart';
 
 late AudioHandler audioHandler;
@@ -12,6 +13,8 @@ final AudioHandler _fallbackAudioHandler = _SilentAudioHandler();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  await AppPreferences.init();
   
   audioHandler = await AudioService.init(
     builder: () => AudioPlayerHandler(),
@@ -21,6 +24,11 @@ Future<void> main() async {
       androidNotificationOngoing: true,
     ),
   );
+
+  // 初始化 AudioHandler 的默认配置
+  if (audioHandler is AudioPlayerHandler) {
+    (audioHandler as AudioPlayerHandler).setFadeOutEnabled(AppPreferences.instance.fadeOutEnabled);
+  }
 
   runApp(const NightSleepApp());
 }
@@ -42,6 +50,7 @@ class NightSleepApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         Provider<AudioHandler>(create: (_) => resolvedHandler),
+        ChangeNotifierProvider.value(value: AppPreferences.instance),
         ChangeNotifierProvider(create: (_) => ThemeController()),
       ],
       child: Consumer<ThemeController>(
