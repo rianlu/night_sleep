@@ -15,6 +15,7 @@ class StitchBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = theme.extension<AppPalette>()!;
     final width = MediaQuery.sizeOf(context).width;
     final compact = width <= AppConstants.compactBreakpoint;
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
@@ -37,7 +38,7 @@ class StitchBottomNavBar extends StatelessWidget {
               offset: const Offset(0, 8),
             ),
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: palette.groupShadow,
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),

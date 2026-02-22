@@ -1,29 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:night_sleep/core/theme/app_palette.dart';
+import 'package:night_sleep/core/theme/theme_seed.dart';
 import 'package:night_sleep/core/theme/theme_tokens.dart';
 
 class AppTheme {
-  static ThemeData build(ThemeTokens t) {
+  static ThemeData build(ThemeTokens t, ThemeSeed seed, Brightness brightness) {
     final baseTextTheme = GoogleFonts.notoSansScTextTheme().apply(
       bodyColor: t.textPrimary,
       displayColor: t.textPrimary,
     );
     final textTheme = baseTextTheme;
 
+    final isDark = brightness == Brightness.dark;
+    final colorScheme = isDark
+        ? ColorScheme.dark(
+            primary: t.accent,
+            onPrimary: t.accentOn,
+            secondary: t.bgSoft,
+            onSecondary: t.pillFg,
+            surface: t.bgCard,
+            onSurface: t.textPrimary,
+            outline: t.border,
+          )
+        : ColorScheme.light(
+            primary: t.accent,
+            onPrimary: t.accentOn,
+            secondary: t.bgSoft,
+            onSecondary: t.pillFg,
+            surface: t.bgCard,
+            onSurface: t.textPrimary,
+            outline: t.border,
+          );
+
     return ThemeData(
       useMaterial3: true,
+      brightness: brightness,
       visualDensity: VisualDensity.standard,
       scaffoldBackgroundColor: t.bgBase,
-      colorScheme: ColorScheme.light(
-        primary: t.accent,
-        onPrimary: t.accentOn,
-        secondary: t.bgSoft,
-        onSecondary: t.pillFg,
-        surface: t.bgCard,
-        onSurface: t.textPrimary,
-        outline: t.border,
-      ),
+      colorScheme: colorScheme,
       textTheme: textTheme,
       splashColor: t.accent.withValues(alpha: 0.1),
       highlightColor: t.accent.withValues(alpha: 0.06),
@@ -107,7 +122,7 @@ class AppTheme {
           TargetPlatform.linux: _CreamSunsetPageTransitionsBuilder(),
         },
       ),
-      extensions: [AppPalette.fromTokens(t)],
+      extensions: [AppPalette.fromTokens(t, seed, brightness)],
     );
   }
 }

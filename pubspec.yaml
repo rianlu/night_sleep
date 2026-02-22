@@ -47,6 +47,7 @@ dependencies:
   shared_preferences: ^2.5.4
   html: ^0.15.6
   receive_sharing_intent: ^1.8.1
+  animated_theme_switcher: ^2.0.10
 
 dev_dependencies:
   flutter_test:

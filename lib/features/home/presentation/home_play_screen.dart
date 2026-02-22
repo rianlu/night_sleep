@@ -124,9 +124,9 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
 
         return Container(
           decoration: BoxDecoration(
-            color: const Color(0xFFFFFDFB),
+            color: palette.groupBg,
             borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: palette.cardSubtle),
+            border: Border.all(color: palette.cardBorderSoft),
             boxShadow: [
               BoxShadow(
                 color: palette.cardShadow,
@@ -191,7 +191,7 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
             width: 86,
             height: 86,
             decoration: BoxDecoration(
-              color: const Color(0xFFFFFBF2), // 奶糖底色
+              color: theme.scaffoldBackgroundColor,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: palette.cardBorderSoft.withValues(alpha: 0.5)),
             ),
@@ -343,7 +343,7 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
               child: Container(
                 height: 10,
                 width: double.infinity,
-                color: const Color(0xFFF3DEC1).withValues(alpha: 0.4), // 极其淡雅的主色底槽
+                color: palette.cardBorderSoft.withValues(alpha: 0.4),
               ),
             ),
           ),
@@ -597,7 +597,7 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
             children: [
               Icon(
                 Icons.speed,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.58),
+                color: palette.titleMuted,
                 size: 12,
               ),
               const SizedBox(width: 8),
@@ -639,7 +639,7 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
           const SizedBox(height: 16),
           Row(
             children: [
-              Icon(Icons.bedtime, color: palette.titleMuted, size: 12),
+              Icon(Icons.bedtime_outlined, color: palette.titleMuted, size: 12),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -969,7 +969,7 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
             width: 96,
             height: 96,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: palette.cardElevated,
               shape: BoxShape.circle,
               border: Border.all(
                 color: theme.colorScheme.primary.withValues(alpha: 0.2),
@@ -1038,10 +1038,10 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
                         color: theme.colorScheme.primary,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.add_rounded,
                         size: 16,
-                        color: Colors.white,
+                        color: theme.colorScheme.onPrimary,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -1092,7 +1092,7 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
               ),
               decoration: BoxDecoration(
                 color: isModal
-                    ? (active ? Colors.white : const Color(0xFFFFFDFA))
+                    ? (active ? palette.cardElevated : palette.groupBg)
                     : (active ? palette.queueActiveBg : Colors.transparent),
                 borderRadius: BorderRadius.circular(isModal ? 20 : 24),
                 border: Border.all(
@@ -1150,9 +1150,9 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
                     ),
                   ),
                   if (active)
-                    Icon(
-                      Icons.graphic_eq_rounded,
+                    _AnimatedEqualizer(
                       color: theme.colorScheme.primary,
+                      size: 24,
                     )
                   else if (isModal)
                     GestureDetector(
@@ -1376,4 +1376,80 @@ class _QueueItemViewModel {
   final int duration;
   final int start;
   final int end;
+}
+
+/// 正在播放时显示的动态音频均衡器指示条
+class _AnimatedEqualizer extends StatefulWidget {
+  const _AnimatedEqualizer({required this.color, required this.size});
+  final Color color;
+  final double size;
+
+  @override
+  State<_AnimatedEqualizer> createState() => _AnimatedEqualizerState();
+}
+
+class _AnimatedEqualizerState extends State<_AnimatedEqualizer>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  static const _pi = 3.14159265;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  double _barHeight(int index) {
+    // 三根线条不同的相位偏移 + 不同的频率，产生自然交错
+    const phases = [0.0, 0.4, 0.8];
+    const speeds = [1.0, 1.4, 0.9];
+    final t = (_controller.value * speeds[index] + phases[index]) % 1.0;
+    final sin = _sinApprox(t * 2 * _pi);
+    return 0.3 + 0.7 * (0.5 + 0.5 * sin); // 在 30%~100% 之间波动
+  }
+
+  /// Bhaskara I 正弦近似，避免引入 dart:math
+  double _sinApprox(double x) {
+    x = x % (2 * _pi);
+    if (x < 0) x += 2 * _pi;
+    if (x > _pi) return -_sinApprox(x - _pi);
+    return 16 * x * (_pi - x) / (5 * _pi * _pi - 4 * x * (_pi - x));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        return SizedBox(
+          width: widget.size,
+          height: widget.size,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: List.generate(3, (i) {
+              return Container(
+                width: widget.size * 0.16,
+                height: widget.size * 0.75 * _barHeight(i),
+                margin: EdgeInsets.symmetric(horizontal: widget.size * 0.025),
+                decoration: BoxDecoration(
+                  color: widget.color,
+                  borderRadius: BorderRadius.circular(widget.size * 0.06),
+                ),
+              );
+            }),
+          ),
+        );
+      },
+    );
+  }
 }

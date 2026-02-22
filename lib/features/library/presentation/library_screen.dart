@@ -185,6 +185,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   Widget _buildEmpty(ThemeData theme) {
+    final palette = theme.extension<AppPalette>()!;
     if (_videos.isNotEmpty) {
       // 当前是由于搜索过滤导致的空列表
       return Padding(
@@ -194,8 +195,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
             Container(
               width: 200,
               height: 200,
-              decoration: const BoxDecoration(
-                color: Color(0xFFFFFDF8), // 极淡的奶黄底色
+              decoration: BoxDecoration(
+                color: palette.cardSubtle,
                 shape: BoxShape.circle,
               ),
               child: Stack(
@@ -210,11 +211,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       width: 14,
                       height: 14,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFDE8C4),
+                        color: palette.queueActiveBorder,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFFDE8C4).withValues(alpha: 0.8),
+                            color: palette.queueActiveBorder.withValues(alpha: 0.8),
                             blurRadius: 10,
                             spreadRadius: 2,
                           ),
@@ -228,8 +229,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     child: Container(
                       width: 8,
                       height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFDE8C4),
+                      decoration: BoxDecoration(
+                        color: palette.queueActiveBorder,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -239,7 +240,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   Icon(
                     Icons.menu_book_rounded,
                     size: 84,
-                    color: const Color(0xFFFDE8C4),
+                    color: palette.queueActiveBorder,
                   ),
                   
                   // 右下角带叉号的搜索圆圈
@@ -250,17 +251,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFFDF8),
+                        color: palette.cardSubtle,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: const Color(0xFFFDE8C4),
+                          color: palette.queueActiveBorder,
                           width: 2,
                         ),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Icon(
                           Icons.search_off_rounded,
-                          color: Color(0xFFF3A738),
+                          color: theme.colorScheme.primary,
                           size: 24,
                         ),
                       ),
@@ -274,7 +275,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               '未找到相关结果',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: const Color(0xFF4A443E),
+                color: palette.titleStrong,
                 fontSize: 20,
               ),
             ),
@@ -282,7 +283,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             Text(
               '换个关键词试试，或者去解析新的链接',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: const Color(0xFF98928A),
+                color: palette.titleMuted,
                 fontSize: 14,
               ),
             ),
@@ -298,14 +299,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFFBF2), // 按钮底色
+                  color: theme.scaffoldBackgroundColor,
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: const Color(0xFFFDE8C4)),
+                  border: Border.all(color: palette.queueActiveBorder),
                 ),
                 child: Text(
                   '清空搜索',
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: const Color(0xFFF3A738),
+                    color: theme.colorScheme.primary,
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
                   ),
@@ -325,8 +326,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
           Container(
             width: 200,
             height: 200,
-            decoration: const BoxDecoration(
-              color: Color(0xFFFFFDF8), // 极淡的奶黄底色
+            decoration: BoxDecoration(
+              color: palette.cardSubtle,
               shape: BoxShape.circle,
             ),
             child: Stack(
@@ -339,7 +340,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   decoration: BoxDecoration(
                     color: Colors.transparent,
                     border: Border.all(
-                      color: const Color(0xFFFDE8C4),
+                      color: palette.queueActiveBorder,
                       width: 8,
                     ),
                     borderRadius: BorderRadius.circular(4),
@@ -349,24 +350,24 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 Container(
                   width: 68,
                   height: 68,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF3A738), // 橘色黑胶盘
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
                     shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
                   child: Container(
                     width: 18,
                     height: 18,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
+                    decoration: BoxDecoration(
+                      color: palette.cardElevated,
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
                     child: Container(
                       width: 4,
                       height: 4,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF3A738),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -380,16 +381,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF3A738).withValues(alpha: 0.35),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.35),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: const Color(0xFFF3A738).withValues(alpha: 0.2),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.2),
                         width: 2,
                       ),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.music_note_rounded,
-                      color: Colors.white,
+                      color: theme.colorScheme.onPrimary,
                       size: 20,
                     ),
                   ),
@@ -402,7 +403,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             '库中空空如也',
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF4A443E),
+              color: palette.titleStrong,
               fontSize: 20,
             ),
           ),
@@ -410,7 +411,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
           Text(
             '复制 B 站视频链接，添加你的第一首助眠音频吧',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF98928A),
+              color: palette.titleMuted,
               fontSize: 14,
             ),
           ),
@@ -442,7 +443,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               border: Border.all(color: palette.cardSubtle),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
+                  color: palette.groupShadow,
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -515,12 +516,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: palette.successBg,
+                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.check_rounded,
-                    color: palette.successFg,
+                    color: theme.colorScheme.primary,
                     size: 22,
                   ),
                 )
@@ -534,10 +535,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     decoration: BoxDecoration(
                       color: theme.colorScheme.secondary,
                       shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
                     ),
                     child: Icon(
                       Icons.add_rounded,
-                      color: palette.warningFg,
+                      color: theme.colorScheme.primary,
                       size: 24,
                     ),
                   ),
@@ -836,11 +844,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 // 浅绿色对勾图标
                 Container(
                   padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFEAF8F1), // 非常浅的绿色底
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check_rounded, color: Color(0xFF10B981), size: 20), // 鲜活的绿绝对勾
+                  child: Icon(Icons.check_rounded, color: theme.colorScheme.primary, size: 20),
                 ),
                 const SizedBox(width: 16),
                 // 文本
@@ -866,7 +874,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     child: Text(
                       '撤销',
                       style: TextStyle(
-                        color: palette.warningFg, // 使用主题内置的鲜艳橘色
+                        color: theme.colorScheme.primary,
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
                       ),

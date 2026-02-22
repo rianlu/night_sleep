@@ -1,8 +1,9 @@
+import 'package:animated_theme_switcher/animated_theme_switcher.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:night_sleep/core/constants/app_constants.dart';
-import 'package:night_sleep/core/theme/app_theme.dart';
 import 'package:night_sleep/core/theme/theme_controller.dart';
+import 'package:night_sleep/core/theme/theme_seed.dart';
 import 'package:night_sleep/features/home/presentation/main_navigation_screen.dart';
 import 'package:night_sleep/features/player/data/audio_player_handler.dart';
 import 'package:night_sleep/core/utils/app_preferences.dart';
@@ -47,22 +48,41 @@ class NightSleepApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final resolvedHandler = _resolveAudioHandler();
+
+    // 从持久化恢复主题设置
+    final prefs = AppPreferences.instance;
+    final presetIndex = prefs.themePresetIndex.clamp(0, ThemeSeed.presets.length - 1);
+    final initialSeed = ThemeSeed.presets[presetIndex];
+    final initialBrightness = prefs.darkMode ? Brightness.dark : Brightness.light;
+
     return MultiProvider(
       providers: [
         Provider<AudioHandler>(create: (_) => resolvedHandler),
         ChangeNotifierProvider.value(value: AppPreferences.instance),
-        ChangeNotifierProvider(create: (_) => ThemeController()),
+        ChangeNotifierProvider(
+          create: (_) => ThemeController(
+            initialSeed: initialSeed,
+            initialBrightness: initialBrightness,
+          ),
+        ),
       ],
       child: Consumer<ThemeController>(
-        builder: (context, controller, _) => MaterialApp(
-          title: AppConstants.appName,
-          theme: AppTheme.build(controller.tokens),
-          home: const MainNavigationScreen(),
+        builder: (context, controller, _) => ThemeProvider(
+          initTheme: controller.themeData,
+          builder: (context, theme) {
+            return MaterialApp(
+              title: AppConstants.appName,
+              theme: theme,
+              themeAnimationDuration: Duration.zero, // Disable native AnimatedTheme
+              home: const MainNavigationScreen(),
+            );
+          },
         ),
       ),
     );
   }
 }
+
 
 class _SilentAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   _SilentAudioHandler() {

@@ -262,7 +262,7 @@ class _AddAudioScreenState extends State<AddAudioScreen> {
             child: FilledButton(
               style: FilledButton.styleFrom(
                 backgroundColor: theme.colorScheme.primary,
-                foregroundColor: Colors.white,
+                foregroundColor: theme.colorScheme.onPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -568,9 +568,9 @@ class _AddAudioScreenState extends State<AddAudioScreen> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: palette.successBg,
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: palette.successBorder),
+                    border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -578,13 +578,13 @@ class _AddAudioScreenState extends State<AddAudioScreen> {
                       Icon(
                         Icons.check_rounded,
                         size: 14,
-                        color: palette.successFg,
+                        color: theme.colorScheme.primary,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         '解析成功',
                         style: TextStyle(
-                          color: palette.successFg,
+                          color: theme.colorScheme.primary,
                           fontWeight: FontWeight.bold,
                           fontSize: 11,
                         ),
@@ -645,8 +645,11 @@ class _AddAudioScreenState extends State<AddAudioScreen> {
 
   Widget _statusBox(ThemeData theme, String text, {required bool isError}) {
     final palette = theme.extension<AppPalette>()!;
-    final bg = isError ? palette.warningBg : palette.successBg;
-    final fg = isError ? palette.warningFg : palette.successFg;
+    final bg = isError ? palette.warningBg : theme.colorScheme.primary.withValues(alpha: 0.08);
+    final fg = isError ? palette.warningFg : theme.colorScheme.primary;
+    final borderColor = isError
+        ? palette.warningBorder.withValues(alpha: 0.5)
+        : theme.colorScheme.primary.withValues(alpha: 0.15);
     
     final parts = text.split('\n');
     final title = parts.first;
@@ -661,9 +664,7 @@ class _AddAudioScreenState extends State<AddAudioScreen> {
         color: bg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isError
-              ? palette.warningBorder.withValues(alpha: 0.5)
-              : palette.successBorder.withValues(alpha: 0.8),
+          color: borderColor,
         ),
       ),
       child: Row(
@@ -756,7 +757,7 @@ class _HollowRangeSliderThumbShape extends RangeSliderThumbShape {
     final canvas = context.canvas;
     
     // Draw white background 
-    final bgPaint = Paint()..color = Colors.white..style = PaintingStyle.fill;
+    final bgPaint = Paint()..color = sliderTheme.thumbColor ?? borderColor..style = PaintingStyle.fill;
     canvas.drawCircle(center, radius, bgPaint);
     
     // Draw border

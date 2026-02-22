@@ -8,6 +8,8 @@ class AppPreferences extends ChangeNotifier {
   // Keys
   static const String _kFadeOutEnabled = 'setting_fade_out_enabled';
   static const String _kAutoDetectClipboard = 'setting_auto_detect_clipboard';
+  static const String _kThemePresetIndex = 'setting_theme_preset_index';
+  static const String _kDarkMode = 'setting_dark_mode';
 
   AppPreferences._();
 
@@ -20,7 +22,7 @@ class AppPreferences extends ChangeNotifier {
     _instance = instance;
   }
 
-  // --- Settings ---
+  // --- 播放设置 ---
 
   bool get fadeOutEnabled => _prefs.getBool(_kFadeOutEnabled) ?? true;
   Future<void> setFadeOutEnabled(bool value) async {
@@ -32,5 +34,19 @@ class AppPreferences extends ChangeNotifier {
   Future<void> setAutoDetectClipboard(bool value) async {
     await _prefs.setBool(_kAutoDetectClipboard, value);
     notifyListeners();
+  }
+
+  // --- 外观设置 ---
+
+  /// 主题预设索引（对应 ThemeSeed.presets 的下标），默认 0 = 奶油晚霞
+  int get themePresetIndex => _prefs.getInt(_kThemePresetIndex) ?? 0;
+  Future<void> setThemePresetIndex(int value) async {
+    await _prefs.setInt(_kThemePresetIndex, value);
+  }
+
+  /// 是否深色模式，默认 false
+  bool get darkMode => _prefs.getBool(_kDarkMode) ?? false;
+  Future<void> setDarkMode(bool value) async {
+    await _prefs.setBool(_kDarkMode, value);
   }
 }
