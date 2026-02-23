@@ -32,7 +32,10 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     ));
 
     _player.playbackEventStream.map(_transformEvent).listen(playbackState.add);
-    _player.positionStream.listen(_checkPlaybackRange);
+    _player.positionStream.listen((pos) {
+      _checkPlaybackRange(pos);
+      _checkPreFadeOut(pos);
+    });
     _player.playerStateStream.listen((state) {
       if (state.processingState == ProcessingState.completed) {
         if (_stopAtEndOfTrack) {
@@ -127,6 +130,30 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     }
   }
 
+  bool _isPreFadingOut = false;
+
+  void _checkPreFadeOut(Duration position) {
+    if (!_fadeOutEnabled || !_player.playing || _player.duration == null) return;
+    
+    Duration endTime = _player.duration!;
+    if (_currentItem != null && 
+        _currentItem!.endTime > _currentItem!.startTime && 
+        _currentItem!.endTime < _currentItem!.duration) {
+      endTime = Duration(seconds: _currentItem!.endTime);
+    }
+    
+    final timeLeft = endTime - position;
+    // 如果播放剩余时间不到 2 秒且未淡出，则触发淡出
+    if (timeLeft <= const Duration(milliseconds: 2000) && timeLeft > Duration.zero) {
+      if (!_isPreFadingOut) {
+        _isPreFadingOut = true;
+        _fadeVolumeTo(0.0, 2000);
+      }
+    } else if (timeLeft > const Duration(milliseconds: 2500)) {
+      _isPreFadingOut = false;
+    }
+  }
+
   Future<void> setSleepTimer(Duration duration) async {
     _sleepTimer?.cancel();
     _sleepTimerDuration = duration;
@@ -140,23 +167,35 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     _fadeOutEnabled = enable;
   }
 
+  int _fadeGeneration = 0;
+
+  Future<void> _fadeVolumeTo(double targetVolume, int durationMs) async {
+    final gen = ++_fadeGeneration;
+    final startVolume = _player.volume;
+    final diff = targetVolume - startVolume;
+    if (diff == 0) return;
+
+    const steps = 30;
+    final stepDuration = Duration(milliseconds: durationMs ~/ steps);
+
+    for (int i = 1; i <= steps; i++) {
+      if (_fadeGeneration != gen) return; // 被新的渐变或操作打断
+      await Future.delayed(stepDuration);
+      if (_fadeGeneration != gen) return;
+      await _player.setVolume(startVolume + diff * (i / steps));
+    }
+    await _player.setVolume(targetVolume);
+  }
+
   Future<void> _fadeOutAndStop() async {
     if (!_fadeOutEnabled) {
       await stop();
       return;
     }
-    const steps = 50; // 5 seconds
-    const interval = Duration(milliseconds: 100);
-    double initialVolume = _player.volume;
-    
-    for (int i = 1; i <= steps; i++) {
-        if (!_player.playing) break;
-        await Future.delayed(interval);
-        double newVolume = initialVolume * (1.0 - (i / steps));
-        await _player.setVolume(newVolume);
+    await _fadeVolumeTo(0.0, 5000); // 5 seconds fade out for sleep timer
+    if (_player.volume <= 0.05) {
+      await stop();
     }
-    await stop();
-    await _player.setVolume(initialVolume);
   }
 
   void cancelSleepTimer() {
@@ -171,16 +210,21 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
 
   @override
   Future<void> play() async {
+    _fadeGeneration++;
     if (_player.volume < 0.01) await _player.setVolume(1.0);
     return _player.play();
   }
 
   @override
-  Future<void> pause() => _player.pause();
+  Future<void> pause() async {
+    _fadeGeneration++;
+    return _player.pause();
+  }
 
   @override
   Future<void> stop() async {
     _sleepTimer?.cancel();
+    _fadeGeneration++;
     await _player.stop();
     await super.stop();
   }
@@ -398,6 +442,7 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
   Future<void> _playVideoItemInternal(VideoItem item, {bool forceRestart = false}) async {
     _currentItem = item;
     
+    _fadeGeneration++;
     // 强制重置音量，防止之前的渐隐导致静音
     if (_player.volume < 0.01) await _player.setVolume(1.0);
 
@@ -481,7 +526,14 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
         await _player.seek(Duration(seconds: item.startTime));
       }
       
-      _player.play();
+      if (_fadeOutEnabled) {
+        await _player.setVolume(0.0);
+        _player.play();
+        _fadeVolumeTo(1.0, 2500); // 新歌 2.5 秒淡入
+      } else {
+        if (_player.volume < 0.01) await _player.setVolume(1.0);
+        _player.play();
+      }
     } catch (e) {
        // 重新抛出到外层 catch
        rethrow;

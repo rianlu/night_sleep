@@ -42,15 +42,9 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
           builder: (context, queueSnap) {
             final activeQueue = _buildDisplayQueue(queueSnap.data ?? []);
 
-            return RefreshIndicator(
-              color: theme.colorScheme.primary,
-              onRefresh: () async {
-                // 现在刷新操作只需通知音频服务或仅作为占位
-                await Future.delayed(const Duration(milliseconds: 500));
-              },
-              child: ListView(
-                padding: EdgeInsets.fromLTRB(hPad, topPad, hPad, 124),
-                children: [
+            return ListView(
+              padding: EdgeInsets.fromLTRB(hPad, topPad, hPad, 124),
+              children: [
                   _buildHeader(theme),
                   const SizedBox(height: 20),
                   _buildPlayerCard(theme, handler, activeQueue),
@@ -81,8 +75,7 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
                       ),
                     ),
                 ],
-              ),
-            );
+              );
           },
         ),
       ),
@@ -341,7 +334,7 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Container(
-                height: 10,
+                height: 6.0,
                 width: double.infinity,
                 color: palette.cardBorderSoft.withValues(alpha: 0.4),
               ),
@@ -400,15 +393,23 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
             const SizedBox(height: 8),
             SizedBox(
               height: 20, // 强制高度包裹，防止滑块自带边距导致布局突变
-              child: SliderTheme(
-                data: SliderThemeData(
-                  trackHeight: 10,
-                  activeTrackColor: theme.colorScheme.primary,
-                  inactiveTrackColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 0, disabledThumbRadius: 0),
-                  overlayShape: SliderComponentShape.noOverlay,
-                  trackShape: const RoundedRectSliderTrackShape(),
-                ),
+              child: TweenAnimationBuilder<double>(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                tween: Tween<double>(begin: 6.0, end: _dragProgress != null ? 10.0 : 6.0),
+                builder: (context, trackHeight, child) {
+                  return SliderTheme(
+                    data: SliderThemeData(
+                      trackHeight: trackHeight,
+                      activeTrackColor: theme.colorScheme.primary,
+                      inactiveTrackColor: theme.colorScheme.primary.withValues(alpha: 0.15),
+                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 0, disabledThumbRadius: 0),
+                      overlayShape: SliderComponentShape.noOverlay,
+                      trackShape: const RoundedRectSliderTrackShape(),
+                    ),
+                    child: child!,
+                  );
+                },
                 child: Slider(
                   value: displayProgress,
                   onChangeStart: (val) {
@@ -1150,9 +1151,16 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
                     ),
                   ),
                   if (active)
-                    _AnimatedEqualizer(
-                      color: theme.colorScheme.primary,
-                      size: 24,
+                    StreamBuilder<PlaybackState>(
+                      stream: handler.playbackState,
+                      builder: (context, snapshot) {
+                        final playing = snapshot.data?.playing ?? false;
+                        return _AnimatedEqualizer(
+                          color: theme.colorScheme.primary,
+                          size: 24,
+                          isPlaying: playing,
+                        );
+                      },
                     )
                   else if (isModal)
                     GestureDetector(
@@ -1380,9 +1388,15 @@ class _QueueItemViewModel {
 
 /// 正在播放时显示的动态音频均衡器指示条
 class _AnimatedEqualizer extends StatefulWidget {
-  const _AnimatedEqualizer({required this.color, required this.size});
+  const _AnimatedEqualizer({
+    required this.color,
+    required this.size,
+    required this.isPlaying,
+  });
+  
   final Color color;
   final double size;
+  final bool isPlaying;
 
   @override
   State<_AnimatedEqualizer> createState() => _AnimatedEqualizerState();
@@ -1399,7 +1413,22 @@ class _AnimatedEqualizerState extends State<_AnimatedEqualizer>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
-    )..repeat();
+    );
+    if (widget.isPlaying) {
+      _controller.repeat();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _AnimatedEqualizer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isPlaying != oldWidget.isPlaying) {
+      if (widget.isPlaying) {
+        _controller.repeat();
+      } else {
+        _controller.stop();
+      }
+    }
   }
 
   @override

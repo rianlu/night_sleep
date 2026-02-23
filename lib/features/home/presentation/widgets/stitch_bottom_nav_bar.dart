@@ -49,7 +49,7 @@ class StitchBottomNavBar extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _item(context, 0, Icons.home_rounded, '首页', compact),
-            _item(context, 1, Icons.library_music_rounded, '媒体库', compact),
+            _item(context, 1, Icons.library_music_rounded, '媒体', compact),
             _item(context, 2, Icons.person_rounded, '我的', compact),
           ],
         ),
@@ -68,44 +68,56 @@ class StitchBottomNavBar extends StatelessWidget {
     final palette = theme.extension<AppPalette>()!;
     final selected = currentIndex == idx;
 
-    return GestureDetector(
-      onTap: () => onTap(idx),
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
-        padding: EdgeInsets.symmetric(
-          horizontal: selected ? 20 : 16,
-          vertical: 12,
-        ),
-        decoration: BoxDecoration(
-          color: selected
-              ? theme.colorScheme.primary.withValues(alpha: 0.12)
-              : Colors.transparent,
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => onTap(idx),
           borderRadius: BorderRadius.circular(100),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: compact ? 22 : 24,
-              color: selected ? theme.colorScheme.primary : palette.iconMuted,
-            ),
-            // 选中的时候展现文字，未选中则只展示图标，增加呼吸感
-            if (selected) ...[
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: compact ? 13 : 14,
-                  letterSpacing: 1.0,
+          child: SizedBox(
+            height: 48,
+            child: Center(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
+                padding: EdgeInsets.symmetric(
+                  horizontal: selected ? 20 : 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? theme.colorScheme.primary.withValues(alpha: 0.12)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      icon,
+                      size: compact ? 22 : 24,
+                      color: selected
+                          ? theme.colorScheme.primary
+                          : palette.iconMuted,
+                    ),
+                    // 选中的时候展现文字，未选中则只展示图标，增加呼吸感
+                    if (selected) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        label,
+                        style: TextStyle(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: compact ? 13 : 14,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-            ]
-          ],
+            ),
+          ),
         ),
       ),
     );

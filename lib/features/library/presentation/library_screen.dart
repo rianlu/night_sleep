@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:night_sleep/data/datasources/database_helper.dart';
 import 'package:night_sleep/data/models/video_item.dart';
 import 'package:night_sleep/core/theme/app_palette.dart';
+import 'package:night_sleep/core/utils/bilibili_id_utils.dart';
 import 'package:night_sleep/features/library/presentation/add_audio_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -69,12 +70,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: RefreshIndicator(
-          color: theme.colorScheme.primary,
-          onRefresh: _loadVideos,
-          child: ListView(
-            padding: EdgeInsets.fromLTRB(hPad, compact ? 18 : 22, hPad, 124),
-            children: [
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(hPad, compact ? 18 : 22, hPad, 124),
+          children: [
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -180,7 +178,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ],
           ),
         ),
-      ),
     );
   }
 
@@ -715,25 +712,35 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 InkWell(
                   onTap: () async {
                     Navigator.pop(context); // 单击后立即关闭弹窗
-                    
-                    // App schema
                     try {
-                      final appUrlStr = 'bilibili://video/${video.id}';
-                      final uri = Uri.parse(appUrlStr);
+                      final bvid = BilibiliIdUtils.extractBvId(video.id);
+                      final page = BilibiliIdUtils.extractPageFromItemId(video.id);
+                      final pageStr = page != null ? '?p=$page' : '';
+
+                      // 尝试使用 bilibili:// esquema 协议唤起 App 直接到达播放页
+                      final appUrlStr = 'bilibili://video/$bvid$pageStr';
+                      final appUri = Uri.parse(appUrlStr);
                       // url_launcher 会在找不到App或系统拒绝拉起时返回 false，如果不使用 catch 而是捕获结果：
-                      final launched = await launchUrl(uri);
+                      final launched = await launchUrl(appUri);
+                      
                       if (!launched) {
-                        // 失败时尝试网页
-                        final webUrl = Uri.parse('https://www.bilibili.com/video/${video.id}');
+                        // 如果无法唤起 app，尝试唤起外部浏览器中的网页
+                        final webUrl = Uri.parse('https://www.bilibili.com/video/$bvid$pageStr');
                         if (await canLaunchUrl(webUrl)) {
                           await launchUrl(webUrl, mode: LaunchMode.externalApplication);
                         }
                       }
                     } catch (e) {
-                      // 兜底异常
-                      final webUrl = Uri.parse('https://www.bilibili.com/video/${video.id}');
-                      if (await canLaunchUrl(webUrl)) {
-                        await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+                      try {
+                        final bvid = BilibiliIdUtils.extractBvId(video.id);
+                        final page = BilibiliIdUtils.extractPageFromItemId(video.id);
+                        final pageStr = page != null ? '?p=$page' : '';
+                        final webUrl = Uri.parse('https://www.bilibili.com/video/$bvid$pageStr');
+                        if (await canLaunchUrl(webUrl)) {
+                          await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+                        }
+                      } catch (_) {
+                         debugPrint('Error launching url: $e');
                       }
                     }
                   },

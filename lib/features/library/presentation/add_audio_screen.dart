@@ -6,7 +6,9 @@ import 'package:night_sleep/data/models/video_item.dart';
 import 'package:night_sleep/features/import/data/bilibili_import_service.dart';
 
 class AddAudioScreen extends StatefulWidget {
-  const AddAudioScreen({super.key});
+  final String? initialUrl;
+
+  const AddAudioScreen({super.key, this.initialUrl});
 
   @override
   State<AddAudioScreen> createState() => _AddAudioScreenState();
@@ -26,6 +28,12 @@ class _AddAudioScreenState extends State<AddAudioScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialUrl != null && widget.initialUrl!.isNotEmpty) {
+      _linkController.text = widget.initialUrl!;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _parse();
+      });
+    }
     _linkController.addListener(() {
       if (mounted) setState(() {});
     });
