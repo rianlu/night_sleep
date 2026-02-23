@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:animated_theme_switcher/animated_theme_switcher.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
@@ -11,8 +13,32 @@ import 'package:night_sleep/features/player/data/audio_player_handler.dart';
 import 'package:night_sleep/main.dart';
 import 'package:provider/provider.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _breathController;
+
+  @override
+  void initState() {
+    super.initState();
+    _breathController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 5200),
+    );
+    _breathController.repeat();
+  }
+
+  @override
+  void dispose() {
+    _breathController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +48,8 @@ class ProfileScreen extends StatelessWidget {
     final heroHeight = (viewportHeight * 0.30).clamp(200.0, 280.0);
     final topPadding = MediaQuery.paddingOf(context).top;
     final isDark = theme.brightness == Brightness.dark;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final overlayStyle = isDark
         ? SystemUiOverlayStyle.light.copyWith(
             statusBarColor: Colors.transparent,
@@ -38,7 +66,18 @@ class ProfileScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildAtmosphereHero(theme, palette, heroHeight + topPadding),
+              AnimatedBuilder(
+                animation: _breathController,
+                builder: (context, child) {
+                  final motion = reduceMotion ? 0.5 : _breathController.value;
+                  return _buildAtmosphereHero(
+                    theme,
+                    palette,
+                    heroHeight + topPadding,
+                    motion,
+                  );
+                },
+              ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
                 child: Column(
@@ -114,12 +153,13 @@ class ProfileScreen extends StatelessWidget {
     ThemeData theme,
     AppPalette palette,
     double height,
+    double motion,
   ) {
     final isDark = theme.brightness == Brightness.dark;
     final primary = theme.colorScheme.primary;
     final bg = theme.scaffoldBackgroundColor;
-    final topColor = Color.lerp(bg, primary, isDark ? 0.12 : 0.06)!;
-    final bottomColor = Color.lerp(bg, primary, isDark ? 0.04 : 0.015)!;
+    final topColor = Color.lerp(bg, primary, isDark ? 0.08 : 0.035)!;
+    final bottomColor = Color.lerp(bg, primary, isDark ? 0.02 : 0.008)!;
     final titleColor = Color.lerp(
       palette.titleStrong,
       primary,
@@ -135,6 +175,7 @@ class ProfileScreen extends StatelessWidget {
       width: double.infinity,
       height: height,
       child: Stack(
+        clipBehavior: Clip.hardEdge,
         children: [
           DecoratedBox(
             decoration: BoxDecoration(
@@ -147,10 +188,35 @@ class ProfileScreen extends StatelessWidget {
             child: const SizedBox.expand(),
           ),
           Positioned.fill(
-            child: CustomPaint(
-              painter: _HeroCurvePainter(
-                lineColor: primary.withValues(alpha: isDark ? 0.10 : 0.06),
-              ),
+            child: _BreathingHaze(
+              primary: primary,
+              isDark: isDark,
+              motion: motion,
+            ),
+          ),
+          Positioned.fill(
+            child: _DriftingMist(
+              primary: primary,
+              isDark: isDark,
+              motion: motion,
+            ),
+          ),
+          Positioned.fill(
+            child: _FloatingGlow(
+              primary: primary,
+              isDark: isDark,
+              motion: motion,
+              phaseOffset: 0.0,
+              anchorX: -0.42,
+            ),
+          ),
+          Positioned.fill(
+            child: _FloatingGlow(
+              primary: primary,
+              isDark: isDark,
+              motion: motion,
+              phaseOffset: math.pi * 0.86,
+              anchorX: 0.42,
             ),
           ),
           Center(
@@ -162,7 +228,7 @@ class ProfileScreen extends StatelessWidget {
                   style: GoogleFonts.notoSerifSc(
                     fontSize: 44,
                     fontWeight: FontWeight.w600,
-                    letterSpacing: 6,
+                    letterSpacing: 5,
                     color: titleColor,
                   ),
                 ),
@@ -171,7 +237,7 @@ class ProfileScreen extends StatelessWidget {
                   '享受安静的睡眠时光',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: sloganColor,
-                    letterSpacing: 3.2,
+                    letterSpacing: 2.8,
                     fontWeight: FontWeight.w300,
                     fontSize: 12,
                   ),
@@ -258,9 +324,9 @@ class ProfileScreen extends StatelessWidget {
       trailing: Switch(
         value: value,
         onChanged: onChanged,
-        activeThumbColor: palette.switchThumb,
+        activeThumbColor: palette.switchActiveThumb,
         activeTrackColor: palette.switchActiveTrack,
-        inactiveThumbColor: palette.switchThumb,
+        inactiveThumbColor: palette.switchInactiveThumb,
         inactiveTrackColor: palette.switchInactiveTrack,
       ),
     );
@@ -273,7 +339,7 @@ class ProfileScreen extends StatelessWidget {
       children: [
         _buildThemeColorPicker(theme, palette),
         _buildDivider(palette),
-        _buildAppearanceModeSelector(theme, palette),
+        _buildDarkModeSwitch(theme, palette),
       ],
     );
   }
@@ -373,113 +439,27 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAppearanceModeSelector(ThemeData theme, AppPalette palette) {
+  Widget _buildDarkModeSwitch(ThemeData theme, AppPalette palette) {
     return Consumer<ThemeController>(
       builder: (context, ctrl, _) {
         return ThemeSwitcher(
           builder: (context) {
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '外观模式',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: palette.titleStrong,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: theme.scaffoldBackgroundColor.withValues(
-                        alpha: 0.55,
-                      ),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    padding: const EdgeInsets.all(4),
-                    child: Row(
-                      children: [
-                        _buildModeOption(
-                          context: context,
-                          theme: theme,
-                          palette: palette,
-                          controller: ctrl,
-                          mode: ThemeAppearanceMode.light,
-                          label: '浅色',
-                        ),
-                        _buildModeOption(
-                          context: context,
-                          theme: theme,
-                          palette: palette,
-                          controller: ctrl,
-                          mode: ThemeAppearanceMode.dark,
-                          label: '深色',
-                        ),
-                        _buildModeOption(
-                          context: context,
-                          theme: theme,
-                          palette: palette,
-                          controller: ctrl,
-                          mode: ThemeAppearanceMode.system,
-                          label: '跟随系统',
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            return _buildSwitchItem(
+              theme: theme,
+              palette: palette,
+              icon: ctrl.isDark
+                  ? Icons.dark_mode_rounded
+                  : Icons.light_mode_rounded,
+              title: '深色模式',
+              value: ctrl.isDark,
+              onChanged: (_) {
+                ctrl.toggleBrightness();
+                ThemeSwitcher.of(context).changeTheme(theme: ctrl.themeData);
+              },
             );
           },
         );
       },
-    );
-  }
-
-  Widget _buildModeOption({
-    required BuildContext context,
-    required ThemeData theme,
-    required AppPalette palette,
-    required ThemeController controller,
-    required ThemeAppearanceMode mode,
-    required String label,
-  }) {
-    final selected = controller.mode == mode;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          controller.setAppearanceMode(mode);
-          ThemeSwitcher.of(context).changeTheme(theme: controller.themeData);
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: selected ? palette.groupBg : Colors.transparent,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: selected
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : [],
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                color: selected ? palette.titleStrong : palette.titleMuted,
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -631,57 +611,151 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
-class _HeroCurvePainter extends CustomPainter {
-  const _HeroCurvePainter({required this.lineColor});
+class _BreathingHaze extends StatelessWidget {
+  const _BreathingHaze({
+    required this.primary,
+    required this.isDark,
+    required this.motion,
+  });
 
-  final Color lineColor;
+  final Color primary;
+  final bool isDark;
+  final double motion;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final linePaint = Paint()
-      ..color = lineColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
+  Widget build(BuildContext context) {
+    final wave = 0.5 + 0.5 * math.sin((motion * 2 * math.pi) - math.pi / 2);
+    final baseAlpha = isDark ? 0.10 : 0.08;
+    final alpha = (baseAlpha + wave * 0.07).clamp(0.0, 0.17);
+    final spread = 0.95 + wave * 0.12;
 
-    final farPath = Path()
-      ..moveTo(-20, size.height * 0.78)
-      ..quadraticBezierTo(
-        size.width * 0.30,
-        size.height * 0.70,
-        size.width * 0.56,
-        size.height * 0.75,
-      )
-      ..quadraticBezierTo(
-        size.width * 0.82,
-        size.height * 0.80,
-        size.width + 20,
-        size.height * 0.74,
-      );
-
-    final nearPath = Path()
-      ..moveTo(-20, size.height * 0.86)
-      ..quadraticBezierTo(
-        size.width * 0.26,
-        size.height * 0.80,
-        size.width * 0.50,
-        size.height * 0.84,
-      )
-      ..quadraticBezierTo(
-        size.width * 0.76,
-        size.height * 0.90,
-        size.width + 20,
-        size.height * 0.84,
-      );
-
-    canvas.drawPath(farPath, linePaint);
-    canvas.drawPath(
-      nearPath,
-      linePaint..color = lineColor.withValues(alpha: lineColor.a * 0.55),
+    return Transform.translate(
+      offset: Offset(0, -11 + wave * 8),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              primary.withValues(alpha: alpha * 0.48),
+              primary.withValues(alpha: alpha * 0.30),
+              Colors.transparent,
+            ],
+            stops: const [0.0, 0.22, 0.72],
+          ),
+        ),
+        child: Transform.scale(
+          scale: spread,
+          alignment: Alignment.topCenter,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: const Alignment(0, -0.82),
+                radius: 0.95,
+                colors: [
+                  primary.withValues(alpha: alpha),
+                  primary.withValues(alpha: alpha * 0.60),
+                  Colors.transparent,
+                ],
+                stops: const [0.0, 0.34, 1.0],
+              ),
+            ),
+            child: const SizedBox.expand(),
+          ),
+        ),
+      ),
     );
   }
+}
+
+class _DriftingMist extends StatelessWidget {
+  const _DriftingMist({
+    required this.primary,
+    required this.isDark,
+    required this.motion,
+  });
+
+  final Color primary;
+  final bool isDark;
+  final double motion;
 
   @override
-  bool shouldRepaint(covariant _HeroCurvePainter other) {
-    return other.lineColor != lineColor;
+  Widget build(BuildContext context) {
+    final wave = math.sin((motion * 2 * math.pi));
+    final phase = math.sin((motion * 2 * math.pi) + math.pi / 2);
+    final dx = wave * 32;
+    final dy = phase * 5;
+    final alpha = isDark ? 0.07 : 0.06;
+
+    return Transform.translate(
+      offset: Offset(dx, dy),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: const Alignment(-1.0, -0.25),
+            end: const Alignment(1.0, 0.25),
+            colors: [
+              Colors.transparent,
+              primary.withValues(alpha: alpha),
+              primary.withValues(alpha: alpha * 0.58),
+              Colors.transparent,
+            ],
+            stops: const [0.0, 0.44, 0.66, 1.0],
+          ),
+        ),
+        child: const SizedBox.expand(),
+      ),
+    );
+  }
+}
+
+class _FloatingGlow extends StatelessWidget {
+  const _FloatingGlow({
+    required this.primary,
+    required this.isDark,
+    required this.motion,
+    required this.phaseOffset,
+    required this.anchorX,
+  });
+
+  final Color primary;
+  final bool isDark;
+  final double motion;
+  final double phaseOffset;
+  final double anchorX;
+
+  @override
+  Widget build(BuildContext context) {
+    final phase = (motion * 2 * math.pi) + phaseOffset;
+    final sway = math.sin(phase);
+    final breath = 0.5 + 0.5 * math.sin(phase - math.pi / 2);
+    final dx = sway * 18;
+    final dy = -12 + math.cos(phase * 0.6) * 4;
+    final alpha = isDark ? 0.055 : 0.045;
+    final radius = 78.0 + (breath * 10);
+
+    return IgnorePointer(
+      child: Align(
+        alignment: Alignment(anchorX, -0.62),
+        child: Transform.translate(
+          offset: Offset(dx, dy),
+          child: Container(
+            width: radius * 2,
+            height: radius * 2,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  primary.withValues(alpha: alpha),
+                  primary.withValues(alpha: alpha * 0.55),
+                  Colors.transparent,
+                ],
+                stops: const [0.0, 0.44, 1.0],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

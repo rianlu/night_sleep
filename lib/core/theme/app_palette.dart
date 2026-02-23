@@ -40,7 +40,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.navSelectedBg,
     required this.switchActiveTrack,
     required this.switchInactiveTrack,
-    required this.switchThumb,
+    required this.switchActiveThumb,
+    required this.switchInactiveThumb,
     required this.headerAvatar,
     required this.headerAvatarBorder,
     required this.headerAvatarShadow,
@@ -92,7 +93,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
   // ── 开关 ──
   final Color switchActiveTrack;
   final Color switchInactiveTrack;
-  final Color switchThumb;
+  final Color switchActiveThumb;
+  final Color switchInactiveThumb;
 
   // ── Profile 页专用 ──
   final Color headerAvatar;
@@ -136,7 +138,11 @@ class AppPalette extends ThemeExtension<AppPalette> {
       cardElevated: t.bgCard,
       cardSubtle: isDark
           ? _hsl(ctHsl.hue, max(ctHsl.saturation, 0.06), ctHsl.lightness + 0.03)
-          : _hsl(ctHsl.hue, min(1.0, max(0.05, ctHsl.saturation)), 0.96), // 稍微提亮卡片
+          : _hsl(
+              ctHsl.hue,
+              min(1.0, max(0.05, ctHsl.saturation)),
+              0.96,
+            ), // 稍微提亮卡片
       cardBorderSoft: isDark
           ? _hsl(ctHsl.hue, max(ctHsl.saturation, 0.06), ctHsl.lightness + 0.10)
           : _hsl(hsl.hue, 0.30, 0.90), // 加深边框增加层级
@@ -150,9 +156,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
           ? _hsl(ctHsl.hue, max(ctHsl.saturation, 0.08), ctHsl.lightness + 0.04)
           : _hsl(bgHsl.hue, min(1.0, max(0.15, bgHsl.saturation)), 0.93),
       pillBorder: t.bgSoft,
-      pillText: isDark
-          ? _hsl(hsl.hue, 0.50, 0.70)
-          : content,
+      pillText: isDark ? _hsl(hsl.hue, 0.50, 0.70) : content,
 
       // ── 队列 ──
       queueActiveBg: isDark
@@ -169,37 +173,25 @@ class AppPalette extends ThemeExtension<AppPalette> {
           : _hsl(hsl.hue, 0.18, 0.78),
 
       // ── 杂项 ──
-      iconMuted: isDark
-          ? _hsl(hsl.hue, 0.08, 0.45)
-          : _hsl(hsl.hue, 0.18, 0.68),
-      sheetHandle: isDark
-          ? const Color(0xFF6B7280)
-          : const Color(0xFFA8A29E),
+      iconMuted: isDark ? _hsl(hsl.hue, 0.08, 0.45) : _hsl(hsl.hue, 0.18, 0.68),
+      sheetHandle: isDark ? const Color(0xFF6B7280) : const Color(0xFFA8A29E),
       modalBarrier: Colors.black.withValues(alpha: isDark ? 0.6 : 0.4),
 
       // ── 语义色（固定，不跟种子色走）──
-      successBg: isDark
-          ? const Color(0xFF052E16)
-          : const Color(0xFFDBF5E8),
-      successFg: isDark
-          ? const Color(0xFF34D399)
-          : const Color(0xFF059669),
-      successBorder: isDark
-          ? const Color(0xFF065F46)
-          : const Color(0xFFD1FAE5),
-      warningBg: isDark
-          ? const Color(0xFF451A03)
-          : const Color(0xFFFFF7ED),
-      warningFg: isDark
-          ? const Color(0xFFFBBF24)
-          : const Color(0xFFD97706),
-      warningBorder: isDark
-          ? const Color(0xFF78350F)
-          : const Color(0xFFFED7AA),
+      successBg: isDark ? const Color(0xFF052E16) : const Color(0xFFDBF5E8),
+      successFg: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+      successBorder: isDark ? const Color(0xFF065F46) : const Color(0xFFD1FAE5),
+      warningBg: isDark ? const Color(0xFF451A03) : const Color(0xFFFFF7ED),
+      warningFg: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706),
+      warningBorder: isDark ? const Color(0xFF78350F) : const Color(0xFFFED7AA),
 
       // ── 导航 ──
       navBg: isDark
-          ? _hsl(bgHsl.hue, min(1.0, max(bgHsl.saturation, 0.06) * 1.2), bgHsl.lightness + 0.02)
+          ? _hsl(
+              bgHsl.hue,
+              min(1.0, max(bgHsl.saturation, 0.06) * 1.2),
+              bgHsl.lightness + 0.02,
+            )
           : _hsl(hsl.hue, min(1.0, hsl.saturation * 1.1), 0.96),
       navSelectedBg: isDark
           ? _hsl(hsl.hue, 0.20, 0.18)
@@ -210,9 +202,12 @@ class AppPalette extends ThemeExtension<AppPalette> {
       switchInactiveTrack: isDark
           ? _hsl(ctHsl.hue, max(ctHsl.saturation, 0.06), ctHsl.lightness + 0.08)
           : _hsl(hsl.hue, 0.10, 0.85),
-      switchThumb: isDark
+      switchActiveThumb: isDark
           ? const Color(0xFFF9FAFB)
           : const Color(0xFFFFFDFB),
+      switchInactiveThumb: isDark
+          ? const Color(0xFF9CA3AF)
+          : const Color(0xFF6B7280),
 
       // ── Profile 头像 ──
       headerAvatar: isDark ? container : seed.container,
@@ -229,7 +224,11 @@ class AppPalette extends ThemeExtension<AppPalette> {
           : _hsl(hsl.hue, 0.10, 0.85),
       groupBg: isDark
           ? _hsl(bgHsl.hue, max(bgHsl.saturation, 0.06), bgHsl.lightness + 0.04)
-          : _hsl(bgHsl.hue, min(max(0.1, bgHsl.saturation), 0.3), 0.98), // 卡片相对背景提亮到接近白但带有一丝特征色
+          : _hsl(
+              bgHsl.hue,
+              min(max(0.1, bgHsl.saturation), 0.3),
+              0.98,
+            ), // 卡片相对背景提亮到接近白但带有一丝特征色
       groupShadow: isDark
           ? Colors.black.withValues(alpha: 0.2)
           : Colors.black.withValues(alpha: 0.02),
@@ -280,7 +279,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
     Color? navSelectedBg,
     Color? switchActiveTrack,
     Color? switchInactiveTrack,
-    Color? switchThumb,
+    Color? switchActiveThumb,
+    Color? switchInactiveThumb,
     Color? headerAvatar,
     Color? headerAvatarBorder,
     Color? headerAvatarShadow,
@@ -317,7 +317,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
       navSelectedBg: navSelectedBg ?? this.navSelectedBg,
       switchActiveTrack: switchActiveTrack ?? this.switchActiveTrack,
       switchInactiveTrack: switchInactiveTrack ?? this.switchInactiveTrack,
-      switchThumb: switchThumb ?? this.switchThumb,
+      switchActiveThumb: switchActiveThumb ?? this.switchActiveThumb,
+      switchInactiveThumb: switchInactiveThumb ?? this.switchInactiveThumb,
       headerAvatar: headerAvatar ?? this.headerAvatar,
       headerAvatarBorder: headerAvatarBorder ?? this.headerAvatarBorder,
       headerAvatarShadow: headerAvatarShadow ?? this.headerAvatarShadow,
@@ -362,12 +363,37 @@ class AppPalette extends ThemeExtension<AppPalette> {
       warningBorder: Color.lerp(warningBorder, other.warningBorder, t)!,
       navBg: Color.lerp(navBg, other.navBg, t)!,
       navSelectedBg: Color.lerp(navSelectedBg, other.navSelectedBg, t)!,
-      switchActiveTrack: Color.lerp(switchActiveTrack, other.switchActiveTrack, t)!,
-      switchInactiveTrack: Color.lerp(switchInactiveTrack, other.switchInactiveTrack, t)!,
-      switchThumb: Color.lerp(switchThumb, other.switchThumb, t)!,
+      switchActiveTrack: Color.lerp(
+        switchActiveTrack,
+        other.switchActiveTrack,
+        t,
+      )!,
+      switchInactiveTrack: Color.lerp(
+        switchInactiveTrack,
+        other.switchInactiveTrack,
+        t,
+      )!,
+      switchActiveThumb: Color.lerp(
+        switchActiveThumb,
+        other.switchActiveThumb,
+        t,
+      )!,
+      switchInactiveThumb: Color.lerp(
+        switchInactiveThumb,
+        other.switchInactiveThumb,
+        t,
+      )!,
       headerAvatar: Color.lerp(headerAvatar, other.headerAvatar, t)!,
-      headerAvatarBorder: Color.lerp(headerAvatarBorder, other.headerAvatarBorder, t)!,
-      headerAvatarShadow: Color.lerp(headerAvatarShadow, other.headerAvatarShadow, t)!,
+      headerAvatarBorder: Color.lerp(
+        headerAvatarBorder,
+        other.headerAvatarBorder,
+        t,
+      )!,
+      headerAvatarShadow: Color.lerp(
+        headerAvatarShadow,
+        other.headerAvatarShadow,
+        t,
+      )!,
       chevronColor: Color.lerp(chevronColor, other.chevronColor, t)!,
       groupBg: Color.lerp(groupBg, other.groupBg, t)!,
       groupShadow: Color.lerp(groupShadow, other.groupShadow, t)!,

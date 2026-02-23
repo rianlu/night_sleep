@@ -36,17 +36,8 @@ Future<void> main() async {
   runApp(const NightSleepApp());
 }
 
-class NightSleepApp extends StatefulWidget {
+class NightSleepApp extends StatelessWidget {
   const NightSleepApp({super.key});
-
-  @override
-  State<NightSleepApp> createState() => _NightSleepAppState();
-}
-
-class _NightSleepAppState extends State<NightSleepApp>
-    with WidgetsBindingObserver {
-  late final ThemeController _themeController;
-  final AppPreferences _prefs = AppPreferences.instance;
 
   AudioHandler _resolveAudioHandler() {
     try {
@@ -57,52 +48,28 @@ class _NightSleepAppState extends State<NightSleepApp>
   }
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-
-    final presetIndex = _prefs.themePresetIndex.clamp(
+  Widget build(BuildContext context) {
+    final resolvedHandler = _resolveAudioHandler();
+    final prefs = AppPreferences.instance;
+    final presetIndex = prefs.themePresetIndex.clamp(
       0,
       ThemeSeed.presets.length - 1,
     );
     final initialSeed = ThemeSeed.presets[presetIndex];
-    final modeIndex = _prefs.themeMode.clamp(
-      0,
-      ThemeAppearanceMode.values.length - 1,
-    );
-    final initialMode = ThemeAppearanceMode.values[modeIndex];
-    final systemBrightness =
-        WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    final initialBrightness = prefs.darkMode
+        ? Brightness.dark
+        : Brightness.light;
 
-    _themeController = ThemeController(
-      initialSeed: initialSeed,
-      initialMode: initialMode,
-      initialSystemBrightness: systemBrightness,
-    );
-  }
-
-  @override
-  void didChangePlatformBrightness() {
-    _themeController.setSystemBrightness(
-      WidgetsBinding.instance.platformDispatcher.platformBrightness,
-    );
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _themeController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final resolvedHandler = _resolveAudioHandler();
     return MultiProvider(
       providers: [
         Provider<AudioHandler>(create: (_) => resolvedHandler),
         ChangeNotifierProvider.value(value: AppPreferences.instance),
-        ChangeNotifierProvider.value(value: _themeController),
+        ChangeNotifierProvider(
+          create: (_) => ThemeController(
+            initialSeed: initialSeed,
+            initialBrightness: initialBrightness,
+          ),
+        ),
       ],
       child: Consumer<ThemeController>(
         builder: (context, controller, _) => ThemeProvider(

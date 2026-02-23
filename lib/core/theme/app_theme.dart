@@ -13,6 +13,7 @@ class AppTheme {
     final textTheme = baseTextTheme;
 
     final isDark = brightness == Brightness.dark;
+    final palette = AppPalette.fromTokens(t, seed, brightness);
     final colorScheme = isDark
         ? ColorScheme.dark(
             primary: t.accent,
@@ -86,6 +87,20 @@ class AppTheme {
         thumbColor: t.bgCard,
         overlayColor: t.accent.withValues(alpha: 0.1),
       ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return palette.switchActiveThumb;
+          }
+          return palette.switchInactiveThumb;
+        }),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return palette.switchActiveTrack;
+          }
+          return palette.switchInactiveTrack;
+        }),
+      ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: t.accent,
@@ -122,7 +137,7 @@ class AppTheme {
           TargetPlatform.linux: _CreamSunsetPageTransitionsBuilder(),
         },
       ),
-      extensions: [AppPalette.fromTokens(t, seed, brightness)],
+      extensions: [palette],
     );
   }
 }
