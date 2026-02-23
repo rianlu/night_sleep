@@ -11,7 +11,10 @@ import 'package:night_sleep/core/theme/theme_seed.dart';
 import 'package:night_sleep/core/utils/app_preferences.dart';
 import 'package:night_sleep/features/player/data/audio_player_handler.dart';
 import 'package:night_sleep/main.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -23,10 +26,12 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _breathController;
+  String _appVersion = '';
 
   @override
   void initState() {
     super.initState();
+    _initPackageInfo();
     _breathController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 5200),
@@ -38,6 +43,47 @@ class _ProfileScreenState extends State<ProfileScreen>
   void dispose() {
     _breathController.dispose();
     super.dispose();
+  }
+
+  Future<void> _initPackageInfo() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _appVersion = '${info.version} (${info.buildNumber})';
+      });
+    }
+  }
+
+  Future<void> _openBilibili() async {
+    final nativeUri = Uri.parse('bilibili://space/20656755');
+    final webUri = Uri.parse('https://space.bilibili.com/20656755');
+    
+    try {
+      // 尝试在原生应用中打开
+      final launched = await launchUrl(
+        nativeUri,
+        mode: LaunchMode.externalNonBrowserApplication,
+      );
+      if (!launched) {
+        // 如果失败，回退到浏览器打开
+        await launchUrl(webUri, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      // 捕获可能抛出的 PlatformException 并安全地在浏览器打开
+      try {
+        await launchUrl(webUri, mode: LaunchMode.externalApplication);
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('无法打开链接')),
+          );
+        }
+      }
+    }
+  }
+
+  void _shareApp() {
+    Share.share('推荐一个超好用的助眠播放器——夜眠，自动跳过 B 站片尾，让你安心睡到天亮。🌙✨\n下载链接：https://www.pgyer.com/nightsleep');
   }
 
   @override
@@ -107,7 +153,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     const SizedBox(height: 14),
                     _buildPersonalizationGroup(theme, palette),
                     const SizedBox(height: 28),
-                    _buildSectionTitle(theme, palette, '关于与支持'),
+                    _buildSectionTitle(theme, palette, '联系与社交'),
                     const SizedBox(height: 14),
                     _buildGroup(
                       theme,
@@ -116,22 +162,24 @@ class _ProfileScreenState extends State<ProfileScreen>
                         _buildNavItem(
                           theme,
                           palette,
-                          Icons.info_rounded,
-                          '关于 夜眠',
+                          Icons.share_rounded,
+                          '分享给朋友',
+                          onTap: _shareApp,
                         ),
                         _buildDivider(palette),
                         _buildNavItem(
                           theme,
                           palette,
-                          Icons.favorite_rounded,
-                          '支持我们',
+                          Icons.ondemand_video_rounded,
+                          '来 B 站催更',
+                          onTap: _openBilibili,
                         ),
                       ],
                     ),
                     const SizedBox(height: 40),
                     Center(
                       child: Text(
-                        '版本 1.2.4 (2023)',
+                        '版本 $_appVersion',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: palette.titleMuted.withValues(alpha: 0.5),
                           fontSize: 12,
@@ -574,13 +622,13 @@ class _ProfileScreenState extends State<ProfileScreen>
       },
     );
   }
-
   Widget _buildNavItem(
     ThemeData theme,
     AppPalette palette,
     IconData icon,
-    String title,
-  ) {
+    String title, {
+    VoidCallback? onTap,
+  }) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       leading: Container(
@@ -604,9 +652,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         color: palette.chevronColor,
         size: 20,
       ),
-      onTap: () {
-        // Placeholder for future actions.
-      },
+      onTap: onTap,
     );
   }
 }

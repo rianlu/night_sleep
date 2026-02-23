@@ -20,7 +20,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     with WidgetsBindingObserver {
   int _currentIndex = 0;
   StreamSubscription? _intentStreamSubscription;
-  String? _lastParsedContent; // 记录上一次解析的链接，避免重复弹窗
+  bool _isHandlingShareIntent = false; // 增加标志位，避免分享意图与剪贴板检测冲突
+  String? _lastParsedShareIntent; // 单独跟踪分享意图的最后解析内容，避免库重复发送
+
+  static final GlobalKey<LibraryScreenState> libraryKey = GlobalKey();
 
   @override
   void initState() {
@@ -62,36 +65,52 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
 
   void _handleSharedIntent(List<SharedMediaFile> list) {
     if (list.isEmpty) return;
+    _isHandlingShareIntent = true;
     for (final file in list) {
       if (file.type == SharedMediaType.text ||
           file.type == SharedMediaType.url) {
         final text = file.path;
-        _processTextIfMatched(text);
+        _processTextIfMatched(text, isFromClipboard: false);
       }
     }
+    // 在短暂延迟后释放阻塞，给 AppLifecycle 足够的缓冲时间，避免重复执行逻辑
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) _isHandlingShareIntent = false;
+    });
   }
 
   Future<void> _checkClipboard() async {
     if (!AppPreferences.instance.autoDetectClipboard) return; // 绑定设置项开关
 
+    // 优先处理分享意图，而非剪贴板（因为 resumed 事件会立即触发）
+    await Future.delayed(const Duration(milliseconds: 200));
+    if (_isHandlingShareIntent || !mounted) return;
+
     try {
       final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
       final text = clipboardData?.text;
       if (text != null && text.isNotEmpty) {
-        _processTextIfMatched(text);
+        _processTextIfMatched(text, isFromClipboard: true);
       }
     } catch (e) {
       debugPrint("读取剪贴板失败: $e");
     }
   }
 
-  void _processTextIfMatched(String text) {
+  void _processTextIfMatched(String text, {required bool isFromClipboard}) {
     if (text.isEmpty) return;
 
     // 简单过滤出 B站 链接特征
     if (text.contains('b23.tv') || text.contains('bilibili.com')) {
-      if (_lastParsedContent == text) return; // 避免同一个链接反复拦截
-      _lastParsedContent = text; // 记录
+      if (isFromClipboard) {
+        final lastParsed = AppPreferences.instance.lastParsedClipboardText;
+        if (lastParsed == text) return; // 避免同一个剪贴板链接反复拦截
+
+        AppPreferences.instance.setLastParsedClipboardText(text); // 持久化记录剪贴板内容
+      } else {
+        if (_lastParsedShareIntent == text) return; // 避免意图重复到达
+        _lastParsedShareIntent = text;
+      }
 
       if (mounted) {
         setState(() => _currentIndex = 1); // 切换到底部栏的库标签页
@@ -100,7 +119,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
           MaterialPageRoute(
             builder: (context) => AddAudioScreen(initialUrl: text),
           ),
-        );
+        ).then((result) {
+          if (result == true && libraryKey.currentState != null) {
+            libraryKey.currentState!.loadVideos();
+          }
+        });
       }
     }
   }
@@ -124,7 +147,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
               HomePlayScreen(
                 onNavigateToLibrary: () => setState(() => _currentIndex = 1),
               ),
-              const LibraryScreen(),
+              LibraryScreen(key: libraryKey),
               const ProfileScreen(),
             ],
           ),

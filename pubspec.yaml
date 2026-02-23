@@ -48,6 +48,8 @@ dependencies:
   html: ^0.15.6
   receive_sharing_intent: ^1.8.1
   animated_theme_switcher: ^2.0.10
+  package_info_plus: ^9.0.0
+  share_plus: ^12.0.1
 
 dev_dependencies:
   flutter_test:
@@ -59,6 +61,26 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.4
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/icons/app_icon.png
+  adaptive_icon_background: "#FFFBF2"
+  adaptive_icon_foreground: assets/icons/night_sleep_foreground.png
+
+flutter_native_splash:
+  color: "#FFFBF2"
+  image: assets/icons/night_sleep_foreground.png
+  color_dark: "#1A1612"
+  image_dark: assets/icons/night_sleep_foreground.png
+  android_12:
+    color: "#FFFBF2"
+    image: assets/icons/night_sleep_foreground.png
+    color_dark: "#1A1612"
+    image_dark: assets/icons/night_sleep_foreground.png
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -70,6 +92,8 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/icons/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

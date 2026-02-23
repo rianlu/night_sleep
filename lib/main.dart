@@ -1,7 +1,9 @@
 import 'package:animated_theme_switcher/animated_theme_switcher.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:night_sleep/core/constants/app_constants.dart';
+import 'package:night_sleep/core/theme/app_palette.dart';
 import 'package:night_sleep/core/theme/theme_controller.dart';
 import 'package:night_sleep/core/theme/theme_seed.dart';
 import 'package:night_sleep/features/home/presentation/main_navigation_screen.dart';
@@ -13,7 +15,8 @@ late AudioHandler audioHandler;
 final AudioHandler _fallbackAudioHandler = _SilentAudioHandler();
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   await AppPreferences.init();
 
@@ -81,11 +84,76 @@ class NightSleepApp extends StatelessWidget {
               theme: theme,
               themeAnimationDuration:
                   Duration.zero, // Disable native AnimatedTheme
-              home: const MainNavigationScreen(),
+              home: const _StartupShell(),
             );
           },
         ),
       ),
+    );
+  }
+}
+
+class _StartupShell extends StatefulWidget {
+  const _StartupShell();
+
+  @override
+  State<_StartupShell> createState() => _StartupShellState();
+}
+
+class _StartupShellState extends State<_StartupShell> {
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (!mounted) return;
+      setState(() => _ready = true);
+      FlutterNativeSplash.remove();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = theme.extension<AppPalette>()!;
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 380),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) {
+        final fade = CurvedAnimation(parent: animation, curve: Curves.easeOut);
+        final scale = Tween<double>(begin: 0.985, end: 1.0).animate(fade);
+        return FadeTransition(
+          opacity: fade,
+          child: ScaleTransition(scale: scale, child: child),
+        );
+      },
+      child: _ready
+          ? const MainNavigationScreen(key: ValueKey('main'))
+          : Scaffold(
+              key: const ValueKey('splash'),
+              backgroundColor: theme.scaffoldBackgroundColor,
+              body: Center(
+                child: Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    color: palette.cardElevated,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: palette.cardBorderSoft.withValues(alpha: 0.45),
+                    ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Image.asset(
+                    'assets/icons/night_sleep_foreground.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ),
     );
   }
 }

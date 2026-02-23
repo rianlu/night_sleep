@@ -13,10 +13,10 @@ class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
 
   @override
-  State<LibraryScreen> createState() => _LibraryScreenState();
+  State<LibraryScreen> createState() => LibraryScreenState();
 }
 
-class _LibraryScreenState extends State<LibraryScreen> {
+class LibraryScreenState extends State<LibraryScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _loading = true;
   List<VideoItem> _videos = [];
@@ -25,7 +25,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   void initState() {
     super.initState();
     _searchController.addListener(() => setState(() {}));
-    _loadVideos();
+    loadVideos();
   }
 
   @override
@@ -34,7 +34,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     super.dispose();
   }
 
-  Future<void> _loadVideos() async {
+  Future<void> loadVideos() async {
     List<VideoItem> videos = [];
     try {
       videos = await DatabaseHelper.instance.readAllVideos();
@@ -101,7 +101,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       MaterialPageRoute(builder: (_) => const AddAudioScreen()),
                     );
                     if (result == true) {
-                      _loadVideos();
+                      loadVideos();
                     }
                   },
                   child: Container(
@@ -906,7 +906,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   Future<void> _deleteVideo(VideoItem video, AppPalette palette) async {
     try {
       await DatabaseHelper.instance.delete(video.id);
-      _loadVideos(); // 刷新列表
+      loadVideos(); // 刷新列表
 
       if (!mounted) return; // 提前判断，修复跨异步使用 context 的警告
 
@@ -922,12 +922,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
       final palette = theme.extension<AppPalette>()!;
       final deletedVideo = video;
 
+      final bottomPadding = MediaQuery.paddingOf(context).bottom;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           elevation: 0, // 移除系统默认深黑阴影
           backgroundColor: Colors.transparent,
           behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.only(bottom: 24, left: 24, right: 24),
+          margin: EdgeInsets.only(
+            bottom: 92 + (bottomPadding > 0 ? bottomPadding : 12.0),
+            left: 24,
+            right: 24,
+          ),
           padding: EdgeInsets.zero,
           content: ClipRRect(
             borderRadius: BorderRadius.circular(20),
@@ -982,7 +988,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       onTap: () async {
                         ScaffoldMessenger.of(context).hideCurrentSnackBar();
                         await DatabaseHelper.instance.create(deletedVideo);
-                        _loadVideos();
+                        loadVideos();
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(

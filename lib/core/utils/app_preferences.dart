@@ -13,6 +13,7 @@ class AppPreferences extends ChangeNotifier {
   static const String _kThemePresetIndex = 'setting_theme_preset_index';
   static const String _kDarkMode = 'setting_dark_mode';
   static const String _kPlaybackQueue = 'playback_queue_v1';
+  static const String _kLastParsedClipboardText = 'setting_last_parsed_clipboard_text';
 
   AppPreferences._();
 
@@ -36,6 +37,12 @@ class AppPreferences extends ChangeNotifier {
   bool get autoDetectClipboard => _prefs.getBool(_kAutoDetectClipboard) ?? true;
   Future<void> setAutoDetectClipboard(bool value) async {
     await _prefs.setBool(_kAutoDetectClipboard, value);
+    notifyListeners();
+  }
+
+  String? get lastParsedClipboardText => _prefs.getString(_kLastParsedClipboardText);
+  Future<void> setLastParsedClipboardText(String value) async {
+    await _prefs.setString(_kLastParsedClipboardText, value);
     notifyListeners();
   }
 
