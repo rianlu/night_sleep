@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:night_sleep/core/constants/app_constants.dart';
 import 'package:night_sleep/core/theme/app_palette.dart';
+import 'package:night_sleep/core/theme/glass_style.dart';
 
 class StitchBottomNavBar extends StatelessWidget {
   const StitchBottomNavBar({
@@ -28,30 +29,48 @@ class StitchBottomNavBar extends StatelessWidget {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(100),
           boxShadow: [
             BoxShadow(
-              color: theme.colorScheme.primary.withValues(alpha: 0.15),
-              blurRadius: 24,
-              spreadRadius: 2,
-              offset: const Offset(0, 8),
-            ),
-            BoxShadow(
-              color: palette.groupShadow,
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+              color: Colors.black.withValues(
+                alpha: theme.brightness == Brightness.dark ? 0.24 : 0.06,
+              ),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _item(context, 0, Icons.home_rounded, '首页', compact),
-            _item(context, 1, Icons.library_music_rounded, '媒体', compact),
-            _item(context, 2, Icons.person_rounded, '我的', compact),
-          ],
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(100),
+          child: BackdropFilter(
+            filter: GlassStyle.blurFilter(
+              theme.brightness,
+              level: GlassLevel.nav,
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: palette.navBg.withValues(
+                  alpha: GlassStyle.opacity(
+                    theme.brightness,
+                    level: GlassLevel.nav,
+                  ),
+                ),
+                borderRadius: BorderRadius.circular(100),
+                border: Border.fromBorderSide(
+                  GlassStyle.border(theme.brightness),
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _item(context, 0, Icons.nightlight_round, '今晚', compact),
+                  _item(context, 1, Icons.bookmark_rounded, '收藏', compact),
+                  _item(context, 2, Icons.settings_rounded, '设置', compact),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:night_sleep/core/theme/app_palette.dart';
+import 'package:night_sleep/core/theme/glass_style.dart';
 import 'package:night_sleep/data/models/video_item.dart';
 import 'package:night_sleep/features/player/data/audio_player_handler.dart';
 import 'package:provider/provider.dart';
@@ -45,37 +46,37 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
             return ListView(
               padding: EdgeInsets.fromLTRB(hPad, topPad, hPad, 124),
               children: [
-                  _buildHeader(theme),
-                  const SizedBox(height: 20),
-                  _buildPlayerCard(theme, handler, activeQueue),
-                  const SizedBox(height: 24),
-                  _buildQueueHeader(theme, handler, activeQueue),
-                  const SizedBox(height: 16),
-                  if (activeQueue.isEmpty)
-                    _buildEmptyQueue(theme)
-                  else
-                    Column(
-                      children: List.generate(
-                        activeQueue.length > 3 ? 3 : activeQueue.length,
-                        (index) {
-                          final item = activeQueue[index];
-                          return Padding(
-                            key: ValueKey(item.id),
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: _buildQueueItem(
-                              theme,
-                              handler,
-                              activeQueue,
-                              index,
-                              item,
-                              isModal: false,
-                            ),
-                          );
-                        },
-                      ),
+                _buildHeader(theme),
+                const SizedBox(height: 20),
+                _buildPlayerCard(theme, handler, activeQueue),
+                const SizedBox(height: 24),
+                _buildQueueHeader(theme, handler, activeQueue),
+                const SizedBox(height: 16),
+                if (activeQueue.isEmpty)
+                  _buildEmptyQueue(theme)
+                else
+                  Column(
+                    children: List.generate(
+                      activeQueue.length > 3 ? 3 : activeQueue.length,
+                      (index) {
+                        final item = activeQueue[index];
+                        return Padding(
+                          key: ValueKey(item.id),
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: _buildQueueItem(
+                            theme,
+                            handler,
+                            activeQueue,
+                            index,
+                            item,
+                            isModal: false,
+                          ),
+                        );
+                      },
                     ),
-                ],
-              );
+                  ),
+              ],
+            );
           },
         ),
       ),
@@ -146,8 +147,8 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
                 duration: const Duration(milliseconds: 400),
                 curve: Curves.fastOutSlowIn,
                 alignment: Alignment.topCenter,
-                child: _expanded 
-                    ? _buildExpandedPanel(theme, handler) 
+                child: _expanded
+                    ? _buildExpandedPanel(theme, handler)
                     : const SizedBox(width: double.infinity, height: 0),
               ),
               InkWell(
@@ -186,11 +187,13 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
             decoration: BoxDecoration(
               color: theme.scaffoldBackgroundColor,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: palette.cardBorderSoft.withValues(alpha: 0.5)),
+              border: Border.all(
+                color: palette.cardBorderSoft.withValues(alpha: 0.5),
+              ),
             ),
             child: Center(
               child: Icon(
-                Icons.nights_stay_rounded, 
+                Icons.nights_stay_rounded,
                 color: palette.titleMuted.withValues(alpha: 0.8), // 柔和的橙色月亮
                 size: 36,
               ),
@@ -356,12 +359,12 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
         final sec = posSnap.data?.inSeconds ?? currentVm.start;
         final withinRange = (sec - currentVm.start).clamp(0, totalRangeSec);
         final progress = withinRange / totalRangeSec;
-        
+
         // 拖动过程中优先显示本地拖动计算的时间进度
         final displayProgress = _dragProgress ?? progress;
-        final displaySec = _dragProgress != null 
-             ? (_dragProgress! * totalRangeSec).round() + currentVm.start 
-             : sec;
+        final displaySec = _dragProgress != null
+            ? (_dragProgress! * totalRangeSec).round() + currentVm.start
+            : sec;
 
         return Column(
           children: [
@@ -396,14 +399,22 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
               child: TweenAnimationBuilder<double>(
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeOutCubic,
-                tween: Tween<double>(begin: 6.0, end: _dragProgress != null ? 10.0 : 6.0),
+                tween: Tween<double>(
+                  begin: 6.0,
+                  end: _dragProgress != null ? 10.0 : 6.0,
+                ),
                 builder: (context, trackHeight, child) {
                   return SliderTheme(
                     data: SliderThemeData(
                       trackHeight: trackHeight,
                       activeTrackColor: theme.colorScheme.primary,
-                      inactiveTrackColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 0, disabledThumbRadius: 0),
+                      inactiveTrackColor: theme.colorScheme.primary.withValues(
+                        alpha: 0.15,
+                      ),
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 0,
+                        disabledThumbRadius: 0,
+                      ),
                       overlayShape: SliderComponentShape.noOverlay,
                       trackShape: const RoundedRectSliderTrackShape(),
                     ),
@@ -419,7 +430,8 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
                     setState(() => _dragProgress = val);
                   },
                   onChangeEnd: (val) {
-                    final targetSec = (val * totalRangeSec).round() + currentVm.start;
+                    final targetSec =
+                        (val * totalRangeSec).round() + currentVm.start;
                     handler.seek(Duration(seconds: targetSec));
                     // 稍微延时再放开控制权，避免 Stream 还没反馈位置而导致指针闪回
                     Future.delayed(const Duration(milliseconds: 300), () {
@@ -472,7 +484,7 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
           },
         );
         final isDisabled = queue.isEmpty || media == null;
-        
+
         final controls = Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -483,9 +495,9 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
                 padding: const EdgeInsets.all(2),
                 child: Icon(
                   Icons.skip_previous_rounded,
-                  color: isDisabled 
-                    ? palette.titleSecondary.withValues(alpha: 0.4) 
-                    : theme.colorScheme.primary.withValues(alpha: 0.78),
+                  color: isDisabled
+                      ? palette.titleSecondary.withValues(alpha: 0.4)
+                      : theme.colorScheme.primary.withValues(alpha: 0.78),
                   size: 32,
                 ),
               ),
@@ -497,8 +509,8 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
                   : () async {
                       if (media == null) {
                         try {
-                           await _startQueueAt(handler, queue, 0); 
-                        } catch(e) {
+                          await _startQueueAt(handler, queue, 0);
+                        } catch (e) {
                           // Ignore
                         }
                         return;
@@ -515,15 +527,21 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
                 height: 72,
                 decoration: BoxDecoration(
                   // 加载中的半空状态也是浅色没有阴影
-                  color: isDisabled ? theme.colorScheme.primary.withValues(alpha: 0.4) : theme.colorScheme.primary, 
+                  color: isDisabled
+                      ? theme.colorScheme.primary.withValues(alpha: 0.4)
+                      : theme.colorScheme.primary,
                   shape: BoxShape.circle,
-                  boxShadow: isDisabled ? [] : [
-                    BoxShadow(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
+                  boxShadow: isDisabled
+                      ? []
+                      : [
+                          BoxShadow(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.3,
+                            ),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                 ),
                 child: Icon(
                   playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
@@ -540,9 +558,9 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
                 padding: const EdgeInsets.all(2),
                 child: Icon(
                   Icons.skip_next_rounded,
-                  color: isDisabled 
-                    ? palette.titleSecondary.withValues(alpha: 0.4) 
-                    : theme.colorScheme.primary.withValues(alpha: 0.78),
+                  color: isDisabled
+                      ? palette.titleSecondary.withValues(alpha: 0.4)
+                      : theme.colorScheme.primary.withValues(alpha: 0.78),
                   size: 32,
                 ),
               ),
@@ -596,11 +614,7 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.speed,
-                color: palette.titleMuted,
-                size: 12,
-              ),
+              Icon(Icons.speed, color: palette.titleMuted, size: 12),
               const SizedBox(width: 8),
               Text(
                 '播放倍速',
@@ -704,7 +718,7 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w800,
             color: palette.titleStrong,
-            fontSize: 14
+            fontSize: 14,
           ),
         ),
         if (queue.isNotEmpty) ...[
@@ -722,7 +736,7 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
                     style: theme.textTheme.titleSmall?.copyWith(
                       color: theme.colorScheme.primary,
                       fontWeight: FontWeight.w700,
-                      fontSize: 12
+                      fontSize: 12,
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -765,190 +779,224 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
                   .where((item) => !dismissedIds.contains(item.id))
                   .toList();
 
-              return Container(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+              return ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(32),
                 ),
-                decoration: BoxDecoration(
-                  color: theme.scaffoldBackgroundColor,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(32),
+                child: BackdropFilter(
+                  filter: GlassStyle.blurFilter(
+                    theme.brightness,
+                    level: GlassLevel.sheet,
                   ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(height: 12),
-                    Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color:
-                            _palette(theme).sheetHandle.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
+                  child: Container(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.sizeOf(context).height * 0.85,
                     ),
-                    const SizedBox(height: 18),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Row(
-                        children: [
-                          Text(
-                            '播放队列',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: _palette(theme).titleStrong,
-                              fontSize: 18,
-                            ),
+                    decoration: BoxDecoration(
+                      color: theme.scaffoldBackgroundColor.withValues(
+                        alpha: GlassStyle.opacity(
+                          theme.brightness,
+                          level: GlassLevel.sheet,
+                        ),
+                      ),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(32),
+                      ),
+                      border: Border(top: GlassStyle.border(theme.brightness)),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(height: 12),
+                        Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: _palette(
+                              theme,
+                            ).sheetHandle.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(999),
                           ),
-                          const SizedBox(width: 2),
-                          Text(
-                            '(${queue.length})',
-                            style: TextStyle(
-                              color: _palette(theme).titleSecondary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                          const Spacer(),
-                          TextButton(
-                            onPressed: queue.isEmpty
-                                ? null
-                                : () async {
-                                    if (handler is AudioPlayerHandler) {
-                                      await handler.clearQueue();
-                                    }
-                                  },
-                            child: Text(
-                              '清空全部',
-                              style: TextStyle(
-                                color: theme.colorScheme.primary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
+                        ),
+                        const SizedBox(height: 18),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Row(
+                            children: [
+                              Text(
+                                '播放队列',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: _palette(theme).titleStrong,
+                                  fontSize: 18,
+                                ),
                               ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Flexible(
-                      child: Theme(
-                        data: theme.copyWith(canvasColor: Colors.transparent),
-                        child: ReorderableListView.builder(
-                          shrinkWrap: true,
-                          proxyDecorator: (child, index, animation) {
-                            return AnimatedBuilder(
-                              animation: animation,
-                              builder: (context, _) {
-                                final double animValue =
-                                    Curves.easeInOut.transform(animation.value);
-                                final double scale = 1.0 + (0.02 * animValue);
-                                return Transform.scale(
-                                  scale: scale,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(20),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: theme.colorScheme.primary
-                                              .withValues(
-                                            alpha: 0.15 * animValue,
-                                          ),
-                                          blurRadius: 15 * animValue,
-                                          spreadRadius: 1 * animValue,
-                                          offset: Offset(0, 8 * animValue),
-                                        ),
-                                      ],
-                                    ),
-                                    child: child,
+                              const SizedBox(width: 2),
+                              Text(
+                                '(${queue.length})',
+                                style: TextStyle(
+                                  color: _palette(theme).titleSecondary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                              const Spacer(),
+                              TextButton(
+                                onPressed: queue.isEmpty
+                                    ? null
+                                    : () async {
+                                        if (handler is AudioPlayerHandler) {
+                                          await handler.clearQueue();
+                                        }
+                                      },
+                                child: Text(
+                                  '清空全部',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
                                   ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Flexible(
+                          child: Theme(
+                            data: theme.copyWith(
+                              canvasColor: Colors.transparent,
+                            ),
+                            child: ReorderableListView.builder(
+                              shrinkWrap: true,
+                              proxyDecorator: (child, index, animation) {
+                                return AnimatedBuilder(
+                                  animation: animation,
+                                  builder: (context, _) {
+                                    final double animValue = Curves.easeInOut
+                                        .transform(animation.value);
+                                    final double scale =
+                                        1.0 + (0.02 * animValue);
+                                    return Transform.scale(
+                                      scale: scale,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: theme.colorScheme.primary
+                                                  .withValues(
+                                                    alpha: 0.15 * animValue,
+                                                  ),
+                                              blurRadius: 15 * animValue,
+                                              spreadRadius: 1 * animValue,
+                                              offset: Offset(0, 8 * animValue),
+                                            ),
+                                          ],
+                                        ),
+                                        child: child,
+                                      ),
+                                    );
+                                  },
                                 );
                               },
-                            );
-                          },
-                          physics: const BouncingScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-                          itemCount: queue.length,
-                          buildDefaultDragHandles: false,
-                          onReorder: (oldIndex, newIndex) {
-                            if (newIndex > oldIndex) {
-                              newIndex -= 1;
-                            }
-                            if (handler is AudioPlayerHandler) {
-                              handler.reorderQueue(oldIndex, newIndex);
-                            }
-                          },
-                          itemBuilder: (context, index) {
-                            final item = queue[index];
+                              physics: const BouncingScrollPhysics(),
+                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                              itemCount: queue.length,
+                              buildDefaultDragHandles: false,
+                              onReorder: (oldIndex, newIndex) {
+                                if (newIndex > oldIndex) {
+                                  newIndex -= 1;
+                                }
+                                if (handler is AudioPlayerHandler) {
+                                  handler.reorderQueue(oldIndex, newIndex);
+                                }
+                              },
+                              itemBuilder: (context, index) {
+                                final item = queue[index];
 
-                            // 使用 AnimatedSize 实现平滑的收缩动画
-                            return AnimatedSize(
-                              key: ValueKey('anim_size_${item.id}'),
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeInOut,
-                              child: removingIds.contains(item.id)
-                                  ? const SizedBox(width: double.infinity)
-                                  : AnimatedOpacity(
-                                      duration:
-                                          const Duration(milliseconds: 200),
-                                      opacity:
-                                          removingIds.contains(item.id) ? 0 : 1,
-                                      child: Padding(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 10),
-                                        child: _buildQueueItem(
-                                          theme,
-                                          handler,
-                                          queue,
-                                          index,
-                                          item,
-                                          isModal: true,
-                                          onRemove: () {
-                                            // 触发收缩动画
-                                            setModalState(() =>
-                                                removingIds.add(item.id));
-                                            // 动画结束后正式移除数据
-                                            Future.delayed(
-                                                const Duration(
-                                                    milliseconds: 300), () {
-                                              dismissedIds.add(item.id);
-                                              final h = handler
-                                                      is AudioPlayerHandler
-                                                  ? handler
-                                                  : null;
-                                              h?.removeQueueItemById(item.id);
-                                              if (context.mounted) {
-                                                setModalState(() {});
-                                              }
-                                            });
-                                          },
+                                // 使用 AnimatedSize 实现平滑的收缩动画
+                                return AnimatedSize(
+                                  key: ValueKey('anim_size_${item.id}'),
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeInOut,
+                                  child: removingIds.contains(item.id)
+                                      ? const SizedBox(width: double.infinity)
+                                      : AnimatedOpacity(
+                                          duration: const Duration(
+                                            milliseconds: 200,
+                                          ),
+                                          opacity: removingIds.contains(item.id)
+                                              ? 0
+                                              : 1,
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(
+                                              bottom: 10,
+                                            ),
+                                            child: _buildQueueItem(
+                                              theme,
+                                              handler,
+                                              queue,
+                                              index,
+                                              item,
+                                              isModal: true,
+                                              onRemove: () {
+                                                // 触发收缩动画
+                                                setModalState(
+                                                  () =>
+                                                      removingIds.add(item.id),
+                                                );
+                                                // 动画结束后正式移除数据
+                                                Future.delayed(
+                                                  const Duration(
+                                                    milliseconds: 300,
+                                                  ),
+                                                  () {
+                                                    dismissedIds.add(item.id);
+                                                    final h =
+                                                        handler
+                                                            is AudioPlayerHandler
+                                                        ? handler
+                                                        : null;
+                                                    h?.removeQueueItemById(
+                                                      item.id,
+                                                    );
+                                                    if (context.mounted) {
+                                                      setModalState(() {});
+                                                    }
+                                                  },
+                                                );
+                                              },
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                    if (queue.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 0, bottom: 32),
-                        child: Center(
-                          child: Text(
-                            'END OF QUEUE',
-                            style: TextStyle(
-                              letterSpacing: 4,
-                              color: _palette(theme).titleSecondary,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                                );
+                              },
                             ),
                           ),
                         ),
-                      )
-                    else
-                      const SizedBox(height: 40),
-                  ],
+                        if (queue.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 0, bottom: 32),
+                            child: Center(
+                              child: Text(
+                                'END OF QUEUE',
+                                style: TextStyle(
+                                  letterSpacing: 4,
+                                  color: _palette(theme).titleSecondary,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          const SizedBox(height: 40),
+                      ],
+                    ),
+                  ),
                 ),
               );
             },
@@ -999,7 +1047,7 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w900,
               color: palette.titleStrong,
-              fontSize: 18
+              fontSize: 18,
             ),
           ),
           const SizedBox(height: 8),
@@ -1008,7 +1056,7 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
             '去本地库添加一些助眠音频吧',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: palette.titleSecondary,
-              fontSize: 12
+              fontSize: 12,
             ),
           ),
           const SizedBox(height: 32),
@@ -1019,7 +1067,10 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
               onTap: widget.onNavigateToLibrary,
               borderRadius: BorderRadius.circular(100),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(100),
@@ -1393,7 +1444,7 @@ class _AnimatedEqualizer extends StatefulWidget {
     required this.size,
     required this.isPlaying,
   });
-  
+
   final Color color;
   final double size;
   final bool isPlaying;

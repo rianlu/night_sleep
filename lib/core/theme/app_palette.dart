@@ -136,10 +136,10 @@ class AppPalette extends ThemeExtension<AppPalette> {
       cardElevated: t.bgCard,
       cardSubtle: isDark
           ? _hsl(ctHsl.hue, max(ctHsl.saturation, 0.06), ctHsl.lightness + 0.03)
-          : _hsl(ctHsl.hue, min(1.0, ctHsl.saturation), 0.96),
+          : _hsl(ctHsl.hue, min(1.0, max(0.05, ctHsl.saturation)), 0.96), // 稍微提亮卡片
       cardBorderSoft: isDark
           ? _hsl(ctHsl.hue, max(ctHsl.saturation, 0.06), ctHsl.lightness + 0.10)
-          : _hsl(hsl.hue, 0.40, 0.86),
+          : _hsl(hsl.hue, 0.30, 0.90), // 加深边框增加层级
       cardShadow: t.shadowColor,
       panelDivider: isDark
           ? _hsl(ctHsl.hue, max(ctHsl.saturation, 0.06), ctHsl.lightness + 0.10)
@@ -148,7 +148,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
       // ── 胶囊 ──
       pillBg: isDark
           ? _hsl(ctHsl.hue, max(ctHsl.saturation, 0.08), ctHsl.lightness + 0.04)
-          : _hsl(bgHsl.hue, min(1.0, bgHsl.saturation), 0.96),
+          : _hsl(bgHsl.hue, min(1.0, max(0.15, bgHsl.saturation)), 0.93),
       pillBorder: t.bgSoft,
       pillText: isDark
           ? _hsl(hsl.hue, 0.50, 0.70)
@@ -199,8 +199,8 @@ class AppPalette extends ThemeExtension<AppPalette> {
 
       // ── 导航 ──
       navBg: isDark
-          ? _hsl(bgHsl.hue, max(bgHsl.saturation, 0.06), bgHsl.lightness + 0.02)
-          : _hsl(hsl.hue, 0.30, 0.96),
+          ? _hsl(bgHsl.hue, min(1.0, max(bgHsl.saturation, 0.06) * 1.2), bgHsl.lightness + 0.02)
+          : _hsl(hsl.hue, min(1.0, hsl.saturation * 1.1), 0.96),
       navSelectedBg: isDark
           ? _hsl(hsl.hue, 0.20, 0.18)
           : _hsl(hsl.hue, 0.90, 0.93),
@@ -218,7 +218,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
       headerAvatar: isDark ? container : seed.container,
       headerAvatarBorder: isDark
           ? _hsl(ctHsl.hue, max(ctHsl.saturation, 0.06), ctHsl.lightness + 0.12)
-          : Colors.white,
+          : _hsl(hsl.hue, 0.1, 0.96),
       headerAvatarShadow: isDark
           ? Colors.black.withValues(alpha: 0.3)
           : primary.withValues(alpha: 0.1),
@@ -229,7 +229,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
           : _hsl(hsl.hue, 0.10, 0.85),
       groupBg: isDark
           ? _hsl(bgHsl.hue, max(bgHsl.saturation, 0.06), bgHsl.lightness + 0.04)
-          : _hsl(bgHsl.hue, min(bgHsl.saturation, 0.15), 0.99),
+          : _hsl(bgHsl.hue, min(max(0.1, bgHsl.saturation), 0.3), 0.98), // 卡片相对背景提亮到接近白但带有一丝特征色
       groupShadow: isDark
           ? Colors.black.withValues(alpha: 0.2)
           : Colors.black.withValues(alpha: 0.02),

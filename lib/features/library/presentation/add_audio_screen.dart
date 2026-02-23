@@ -214,7 +214,7 @@ class _AddAudioScreenState extends State<AddAudioScreen> {
           const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
+              color: palette.groupBg,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: theme.colorScheme.primary.withValues(alpha: 0.4),
@@ -464,7 +464,7 @@ class _AddAudioScreenState extends State<AddAudioScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: palette.groupBg,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: theme.colorScheme.primary,
@@ -514,7 +514,7 @@ class _AddAudioScreenState extends State<AddAudioScreen> {
                       child: Text(
                         _format(item.duration),
                         style: TextStyle(
-                          color: theme.colorScheme.surface,
+                          color: theme.scaffoldBackgroundColor,
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                           fontFamily: 'monospace',
@@ -625,7 +625,7 @@ class _AddAudioScreenState extends State<AddAudioScreen> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
+            color: palette.groupBg,
             border: Border.all(
               color: theme.colorScheme.primary.withValues(alpha: 0.3),
               width: 1.5,

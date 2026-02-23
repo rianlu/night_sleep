@@ -10,6 +10,7 @@ class AppPreferences extends ChangeNotifier {
   static const String _kAutoDetectClipboard = 'setting_auto_detect_clipboard';
   static const String _kThemePresetIndex = 'setting_theme_preset_index';
   static const String _kDarkMode = 'setting_dark_mode';
+  static const String _kThemeMode = 'setting_theme_mode';
 
   AppPreferences._();
 
@@ -48,5 +49,11 @@ class AppPreferences extends ChangeNotifier {
   bool get darkMode => _prefs.getBool(_kDarkMode) ?? false;
   Future<void> setDarkMode(bool value) async {
     await _prefs.setBool(_kDarkMode, value);
+  }
+
+  /// 主题模式：0=浅色 1=深色 2=跟随系统，默认跟随系统
+  int get themeMode => _prefs.getInt(_kThemeMode) ?? 2;
+  Future<void> setThemeMode(int value) async {
+    await _prefs.setInt(_kThemeMode, value);
   }
 }

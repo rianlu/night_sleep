@@ -16,7 +16,8 @@ class MainNavigationScreen extends StatefulWidget {
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> with WidgetsBindingObserver {
+class _MainNavigationScreenState extends State<MainNavigationScreen>
+    with WidgetsBindingObserver {
   int _currentIndex = 0;
   StreamSubscription? _intentStreamSubscription;
   String? _lastParsedContent; // 记录上一次解析的链接，避免重复弹窗
@@ -25,16 +26,23 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    
+
     // 监听应用在后台时进入的分享意图
-    _intentStreamSubscription = ReceiveSharingIntent.instance.getMediaStream().listen((List<SharedMediaFile> value) {
-      _handleSharedIntent(value);
-    }, onError: (err) {
-      debugPrint("getIntentDataStream error: $err");
-    });
+    _intentStreamSubscription = ReceiveSharingIntent.instance
+        .getMediaStream()
+        .listen(
+          (List<SharedMediaFile> value) {
+            _handleSharedIntent(value);
+          },
+          onError: (err) {
+            debugPrint("getIntentDataStream error: $err");
+          },
+        );
 
     // 获取应用从关闭状态被分享意图启动时的初始信息
-    ReceiveSharingIntent.instance.getInitialMedia().then((List<SharedMediaFile> value) {
+    ReceiveSharingIntent.instance.getInitialMedia().then((
+      List<SharedMediaFile> value,
+    ) {
       _handleSharedIntent(value);
       ReceiveSharingIntent.instance.reset(); // 处理后清理初始状态
     });
@@ -55,7 +63,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
   void _handleSharedIntent(List<SharedMediaFile> list) {
     if (list.isEmpty) return;
     for (final file in list) {
-      if (file.type == SharedMediaType.text || file.type == SharedMediaType.url) {
+      if (file.type == SharedMediaType.text ||
+          file.type == SharedMediaType.url) {
         final text = file.path;
         _processTextIfMatched(text);
       }
@@ -78,7 +87,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
 
   void _processTextIfMatched(String text) {
     if (text.isEmpty) return;
-    
+
     // 简单过滤出 B站 链接特征
     if (text.contains('b23.tv') || text.contains('bilibili.com')) {
       if (_lastParsedContent == text) return; // 避免同一个链接反复拦截
@@ -106,20 +115,27 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true, // 这是悬浮导航栏的关键设置，允许内容区延伸到导航栏下方
-      body: IndexedStack(
-        index: _currentIndex,
+      extendBody: true,
+      body: Stack(
         children: [
-          HomePlayScreen(
-            onNavigateToLibrary: () => setState(() => _currentIndex = 1),
+          IndexedStack(
+            index: _currentIndex,
+            children: [
+              HomePlayScreen(
+                onNavigateToLibrary: () => setState(() => _currentIndex = 1),
+              ),
+              const LibraryScreen(),
+              const ProfileScreen(),
+            ],
           ),
-          const LibraryScreen(),
-          const ProfileScreen(),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: StitchBottomNavBar(
+              currentIndex: _currentIndex,
+              onTap: (index) => setState(() => _currentIndex = index),
+            ),
+          ),
         ],
-      ),
-      bottomNavigationBar: StitchBottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
       ),
     );
   }

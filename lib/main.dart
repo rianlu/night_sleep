@@ -14,9 +14,9 @@ final AudioHandler _fallbackAudioHandler = _SilentAudioHandler();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   await AppPreferences.init();
-  
+
   audioHandler = await AudioService.init(
     builder: () => AudioPlayerHandler(),
     config: const AudioServiceConfig(
@@ -28,14 +28,25 @@ Future<void> main() async {
 
   // 初始化 AudioHandler 的默认配置
   if (audioHandler is AudioPlayerHandler) {
-    (audioHandler as AudioPlayerHandler).setFadeOutEnabled(AppPreferences.instance.fadeOutEnabled);
+    (audioHandler as AudioPlayerHandler).setFadeOutEnabled(
+      AppPreferences.instance.fadeOutEnabled,
+    );
   }
 
   runApp(const NightSleepApp());
 }
 
-class NightSleepApp extends StatelessWidget {
+class NightSleepApp extends StatefulWidget {
   const NightSleepApp({super.key});
+
+  @override
+  State<NightSleepApp> createState() => _NightSleepAppState();
+}
+
+class _NightSleepAppState extends State<NightSleepApp>
+    with WidgetsBindingObserver {
+  late final ThemeController _themeController;
+  final AppPreferences _prefs = AppPreferences.instance;
 
   AudioHandler _resolveAudioHandler() {
     try {
@@ -46,34 +57,63 @@ class NightSleepApp extends StatelessWidget {
   }
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
+    final presetIndex = _prefs.themePresetIndex.clamp(
+      0,
+      ThemeSeed.presets.length - 1,
+    );
+    final initialSeed = ThemeSeed.presets[presetIndex];
+    final modeIndex = _prefs.themeMode.clamp(
+      0,
+      ThemeAppearanceMode.values.length - 1,
+    );
+    final initialMode = ThemeAppearanceMode.values[modeIndex];
+    final systemBrightness =
+        WidgetsBinding.instance.platformDispatcher.platformBrightness;
+
+    _themeController = ThemeController(
+      initialSeed: initialSeed,
+      initialMode: initialMode,
+      initialSystemBrightness: systemBrightness,
+    );
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    _themeController.setSystemBrightness(
+      WidgetsBinding.instance.platformDispatcher.platformBrightness,
+    );
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _themeController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final resolvedHandler = _resolveAudioHandler();
-
-    // 从持久化恢复主题设置
-    final prefs = AppPreferences.instance;
-    final presetIndex = prefs.themePresetIndex.clamp(0, ThemeSeed.presets.length - 1);
-    final initialSeed = ThemeSeed.presets[presetIndex];
-    final initialBrightness = prefs.darkMode ? Brightness.dark : Brightness.light;
-
     return MultiProvider(
       providers: [
         Provider<AudioHandler>(create: (_) => resolvedHandler),
         ChangeNotifierProvider.value(value: AppPreferences.instance),
-        ChangeNotifierProvider(
-          create: (_) => ThemeController(
-            initialSeed: initialSeed,
-            initialBrightness: initialBrightness,
-          ),
-        ),
+        ChangeNotifierProvider.value(value: _themeController),
       ],
       child: Consumer<ThemeController>(
         builder: (context, controller, _) => ThemeProvider(
           initTheme: controller.themeData,
+          duration: Duration.zero,
           builder: (context, theme) {
             return MaterialApp(
               title: AppConstants.appName,
               theme: theme,
-              themeAnimationDuration: Duration.zero, // Disable native AnimatedTheme
+              themeAnimationDuration:
+                  Duration.zero, // Disable native AnimatedTheme
               home: const MainNavigationScreen(),
             );
           },
@@ -83,17 +123,19 @@ class NightSleepApp extends StatelessWidget {
   }
 }
 
-
-class _SilentAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
+class _SilentAudioHandler extends BaseAudioHandler
+    with QueueHandler, SeekHandler {
   _SilentAudioHandler() {
     queue.add([]);
     mediaItem.add(null);
-    playbackState.add(PlaybackState(
-      controls: [MediaControl.play, MediaControl.pause],
-      systemActions: {MediaAction.seek},
-      processingState: AudioProcessingState.idle,
-      playing: false,
-      updatePosition: Duration.zero,
-    ));
+    playbackState.add(
+      PlaybackState(
+        controls: [MediaControl.play, MediaControl.pause],
+        systemActions: {MediaAction.seek},
+        processingState: AudioProcessingState.idle,
+        playing: false,
+        updatePosition: Duration.zero,
+      ),
+    );
   }
 }

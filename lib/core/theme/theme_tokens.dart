@@ -68,7 +68,9 @@ class ThemeTokens {
     final ctHsl = HSLColor.fromColor(container);
 
     // ── 背景层 ──
-    final bgBase = background;
+    final bgBase = isDark
+        ? background
+        : _hsl(hsl.hue, min(0.12, bgHsl.saturation + 0.05), bgHsl.lightness * 0.96);
 
     // Card: dark 用 container, light 用纯白
     final bgCard = isDark ? container : Colors.white;
