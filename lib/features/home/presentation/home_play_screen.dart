@@ -2,7 +2,6 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:night_sleep/core/theme/app_palette.dart';
 import 'package:night_sleep/core/theme/glass_style.dart';
-import 'package:night_sleep/data/models/video_item.dart';
 import 'package:night_sleep/features/player/data/audio_player_handler.dart';
 import 'package:provider/provider.dart';
 
@@ -1242,23 +1241,18 @@ class _HomePlayScreenState extends State<HomePlayScreen> {
     List<_QueueItemViewModel> queue,
     int index,
   ) async {
-    final asVideoItems = queue
-        .map(
-          (q) => VideoItem(
-            id: q.id,
-            title: q.title,
-            artist: q.artist,
-            coverUrl: q.coverUrl,
-            duration: q.duration,
-            startTime: q.start,
-            endTime: q.end,
-            addedAt: DateTime.now(),
-          ),
-        )
-        .toList();
-
     if (handler is AudioPlayerHandler) {
-      await handler.loadPlaylist(asVideoItems, index);
+      final target = queue[index];
+      final currentId = handler.mediaItem.value?.id;
+      if (currentId == target.id) {
+        final isPlaying = handler.playbackState.value.playing;
+        if (!isPlaying) {
+          await handler.play();
+        }
+        return;
+      }
+
+      await handler.skipToQueueItemById(target.id, forceRestart: true);
       await handler.play();
     }
   }

@@ -4,10 +4,12 @@ import 'package:audio_service/audio_service.dart';
 import 'package:dio/dio.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:night_sleep/core/utils/bilibili_id_utils.dart';
+import 'package:night_sleep/core/utils/app_preferences.dart';
 import 'package:night_sleep/data/models/video_item.dart';
 import 'package:night_sleep/features/import/data/bilibili_video_audio_service.dart';
 
-class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
+class AudioPlayerHandler extends BaseAudioHandler
+    with QueueHandler, SeekHandler {
   final _player = AudioPlayer();
   Timer? _sleepTimer;
   bool _fadeOutEnabled = true;
@@ -23,13 +25,24 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     // 这解决了你发现的“已导入音频看不到”的问题，因为 UI 崩溃导致了界面显示异常
     queue.add([]);
     mediaItem.add(null);
-    playbackState.add(PlaybackState(
-      controls: [MediaControl.play, MediaControl.skipToNext, MediaControl.skipToPrevious, MediaControl.stop],
-      systemActions: const {MediaAction.seek, MediaAction.skipToNext, MediaAction.skipToPrevious},
-      playing: false,
-      updatePosition: Duration.zero,
-      processingState: AudioProcessingState.idle,
-    ));
+    playbackState.add(
+      PlaybackState(
+        controls: [
+          MediaControl.play,
+          MediaControl.skipToNext,
+          MediaControl.skipToPrevious,
+          MediaControl.stop,
+        ],
+        systemActions: const {
+          MediaAction.seek,
+          MediaAction.skipToNext,
+          MediaAction.skipToPrevious,
+        },
+        playing: false,
+        updatePosition: Duration.zero,
+        processingState: AudioProcessingState.idle,
+      ),
+    );
 
     _player.playbackEventStream.map(_transformEvent).listen(playbackState.add);
     _player.positionStream.listen((pos) {
@@ -47,15 +60,21 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
         }
       }
     });
+
+    unawaited(_restoreQueueFromPrefs());
   }
 
-  Stream<AudioServiceRepeatMode> get repeatModeStream => _player.loopModeStream.map((loopMode) {
-    switch (loopMode) {
-      case LoopMode.off: return AudioServiceRepeatMode.none;
-      case LoopMode.one: return AudioServiceRepeatMode.one;
-      case LoopMode.all: return AudioServiceRepeatMode.all;
-    }
-  });
+  Stream<AudioServiceRepeatMode> get repeatModeStream =>
+      _player.loopModeStream.map((loopMode) {
+        switch (loopMode) {
+          case LoopMode.off:
+            return AudioServiceRepeatMode.none;
+          case LoopMode.one:
+            return AudioServiceRepeatMode.one;
+          case LoopMode.all:
+            return AudioServiceRepeatMode.all;
+        }
+      });
 
   Stream<bool> get shuffleModeStream => _player.shuffleModeEnabledStream;
   bool get isShuffleEnabled => _player.shuffleModeEnabled;
@@ -133,18 +152,21 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
   bool _isPreFadingOut = false;
 
   void _checkPreFadeOut(Duration position) {
-    if (!_fadeOutEnabled || !_player.playing || _player.duration == null) return;
-    
+    if (!_fadeOutEnabled || !_player.playing || _player.duration == null) {
+      return;
+    }
+
     Duration endTime = _player.duration!;
-    if (_currentItem != null && 
-        _currentItem!.endTime > _currentItem!.startTime && 
+    if (_currentItem != null &&
+        _currentItem!.endTime > _currentItem!.startTime &&
         _currentItem!.endTime < _currentItem!.duration) {
       endTime = Duration(seconds: _currentItem!.endTime);
     }
-    
+
     final timeLeft = endTime - position;
     // 如果播放剩余时间不到 2 秒且未淡出，则触发淡出
-    if (timeLeft <= const Duration(milliseconds: 2000) && timeLeft > Duration.zero) {
+    if (timeLeft <= const Duration(milliseconds: 2000) &&
+        timeLeft > Duration.zero) {
       if (!_isPreFadingOut) {
         _isPreFadingOut = true;
         _fadeVolumeTo(0.0, 2000);
@@ -244,8 +266,8 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
         return;
       }
     }
-    
-    int currentIndex = (queue.hasValue && mediaItem.hasValue) 
+
+    int currentIndex = (queue.hasValue && mediaItem.hasValue)
         ? queue.value.indexWhere((item) => item.id == mediaItem.value?.id)
         : -1;
     if (currentIndex == -1) {
@@ -300,23 +322,23 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
 
     int prevIndex;
     if (_player.shuffleModeEnabled && queue.value.length > 1) {
-       final random = math.Random();
-       prevIndex = currentIndex;
-       while (prevIndex == currentIndex) {
-         prevIndex = random.nextInt(queue.value.length);
-       }
+      final random = math.Random();
+      prevIndex = currentIndex;
+      while (prevIndex == currentIndex) {
+        prevIndex = random.nextInt(queue.value.length);
+      }
     } else {
-       prevIndex = currentIndex - 1;
+      prevIndex = currentIndex - 1;
     }
 
     if (prevIndex < 0) {
       if (_player.loopMode == LoopMode.all) {
         prevIndex = queue.value.length - 1;
       } else {
-        return; 
+        return;
       }
     }
-    
+
     final prevMediaItem = queue.value[prevIndex];
     await _playMediaItem(prevMediaItem, forceRestart: true);
   }
@@ -340,16 +362,19 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     // 我们在此通过 playbackState.add 通知监听者。
     // 注意：AudioService 配合 just_audio 时，循环模式通常需要手动同步广播状态。
     // 我们在此通过通知 playbackState 变化来确保 UI 能够监听并更新模式图标。
-    
+
     super.setRepeatMode(repeatMode);
-    
+
     // 有效广播状态变更
-     if (playbackState.hasValue) {
-       playbackState.add(playbackState.value); 
-     }
+    if (playbackState.hasValue) {
+      playbackState.add(playbackState.value);
+    }
   }
 
-  Future<void> _playMediaItem(MediaItem item, {bool forceRestart = false}) async {
+  Future<void> _playMediaItem(
+    MediaItem item, {
+    bool forceRestart = false,
+  }) async {
     // 从 MediaItem 的 extras 中恢复 VideoItem
     final videoItem = VideoItem(
       id: item.id,
@@ -368,12 +393,22 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     );
     await playVideoItem(videoItem, forceRestart: forceRestart);
   }
-  
+
   // 跳过到队列中的指定索引
   Future<void> skipToQueueIndex(int index) async {
     if (index < 0 || index >= queue.value.length) return;
     final item = queue.value[index];
     await _playMediaItem(item, forceRestart: true);
+  }
+
+  Future<void> skipToQueueItemById(
+    String id, {
+    bool forceRestart = true,
+  }) async {
+    final index = queue.value.indexWhere((item) => item.id == id);
+    if (index < 0) return;
+    final item = queue.value[index];
+    await _playMediaItem(item, forceRestart: forceRestart);
   }
 
   Future<void> removeQueueItemById(String id) async {
@@ -389,12 +424,14 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     final item = list.removeAt(oldIndex);
     list.insert(newIndex, item);
     queue.add(list);
+    unawaited(_persistQueue());
   }
 
   // 加载完整播放队列并播放指定索引
   Future<void> loadPlaylist(List<VideoItem> videos, int index) async {
     final mediaItems = videos.map((v) => _toMediaItem(v)).toList();
     queue.add(mediaItems);
+    await _persistQueue();
     // 从列表点击进入时，通常希望强制开始播放（即使是当前 ID）
     await playVideoItem(videos[index], forceRestart: true);
   }
@@ -415,17 +452,19 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
         'cid': item.cid,
         'page': item.page,
         'category': item.category,
-      }
+      },
     );
   }
 
-  
-  Future<void> playVideoItem(VideoItem item, {bool forceRestart = false}) async {
+  Future<void> playVideoItem(
+    VideoItem item, {
+    bool forceRestart = false,
+  }) async {
     // 使用简单的锁机制防止并发加载导致的 Loading interrupted
     while (_isTaskRunning) {
       await _currentPlayTask?.future;
     }
-    
+
     _isTaskRunning = true;
     _currentPlayTask = Completer<void>();
 
@@ -439,16 +478,20 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     }
   }
 
-  Future<void> _playVideoItemInternal(VideoItem item, {bool forceRestart = false}) async {
+  Future<void> _playVideoItemInternal(
+    VideoItem item, {
+    bool forceRestart = false,
+  }) async {
     _currentItem = item;
-    
+
     _fadeGeneration++;
     // 强制重置音量，防止之前的渐隐导致静音
     if (_player.volume < 0.01) await _player.setVolume(1.0);
 
     // 确保当前项目在队列中。如果队列为空，说明是单独播放。
     if (queue.value.isEmpty) {
-        queue.add([_toMediaItem(item)]);
+      queue.add([_toMediaItem(item)]);
+      await _persistQueue();
     }
 
     // 如果已经在播放该 ID 且不是强制重播，则跳过加载，防止重复启动导致的 Loading interrupted 错误
@@ -457,7 +500,9 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     final currentMediaId = mediaItem.hasValue ? mediaItem.value?.id : null;
 
     // 如果已经在播放该 ID 且不是强制重播，则跳过加载，防止重复启动导致的 Loading interrupted 错误
-    if (!forceRestart && currentMediaId == item.id && _player.processingState != ProcessingState.idle) {
+    if (!forceRestart &&
+        currentMediaId == item.id &&
+        _player.processingState != ProcessingState.idle) {
       return;
     }
 
@@ -469,18 +514,27 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     // 2. 手动广播一个新的位置状态，确保 UI 在重绘前拿到的进度是正确的
     // 这能解决你发现的“进度条跳动”问题
     if (playbackState.hasValue) {
-      playbackState.add(playbackState.value.copyWith(
-        updatePosition: startPos,
-      ));
+      playbackState.add(playbackState.value.copyWith(updatePosition: startPos));
     } else {
       // 如果没有初始值，广播一个基本的就绪状态
-      playbackState.add(PlaybackState(
-        controls: [MediaControl.skipToPrevious, MediaControl.play, MediaControl.skipToNext, MediaControl.stop],
-        systemActions: const {MediaAction.seek, MediaAction.skipToNext, MediaAction.skipToPrevious},
-        playing: false,
-        updatePosition: startPos,
-        processingState: AudioProcessingState.loading,
-      ));
+      playbackState.add(
+        PlaybackState(
+          controls: [
+            MediaControl.skipToPrevious,
+            MediaControl.play,
+            MediaControl.skipToNext,
+            MediaControl.stop,
+          ],
+          systemActions: const {
+            MediaAction.seek,
+            MediaAction.skipToNext,
+            MediaAction.skipToPrevious,
+          },
+          playing: false,
+          updatePosition: startPos,
+          processingState: AudioProcessingState.loading,
+        ),
+      );
     }
 
     // 3. 更新 MediaItem 触发 UI 重绘
@@ -494,17 +548,23 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
         final bvid = BilibiliIdUtils.extractBvId(item.id);
         final videoAudioService = BilibiliVideoAudioService();
         String? cid = item.cid;
-        
+
         if (cid == null) {
           final dio = Dio();
-          final response = await dio.get('https://api.bilibili.com/x/web-interface/view', queryParameters: {'bvid': bvid});
+          final response = await dio.get(
+            'https://api.bilibili.com/x/web-interface/view',
+            queryParameters: {'bvid': bvid},
+          );
           if (response.statusCode == 200 && response.data['code'] == 0) {
             cid = response.data['data']['cid']?.toString();
           }
         }
 
         if (cid != null) {
-          final url = await videoAudioService.getVideoAudioUrl(bvid, int.parse(cid));
+          final url = await videoAudioService.getVideoAudioUrl(
+            bvid,
+            int.parse(cid),
+          );
           if (url != null) source = url;
         }
       } catch (e) {
@@ -512,20 +572,25 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
       }
     }
 
-    source ??= 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'; 
-    
+    source ??= 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+
     try {
-      final bvid = item.id.startsWith('BV') ? BilibiliIdUtils.extractBvId(item.id) : item.id;
+      final bvid = item.id.startsWith('BV')
+          ? BilibiliIdUtils.extractBvId(item.id)
+          : item.id;
       final headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent':
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Referer': 'https://www.bilibili.com/video/$bvid',
       };
-      await _player.setAudioSource(AudioSource.uri(Uri.parse(source), headers: headers));
-      
+      await _player.setAudioSource(
+        AudioSource.uri(Uri.parse(source), headers: headers),
+      );
+
       if (item.startTime > 0) {
         await _player.seek(Duration(seconds: item.startTime));
       }
-      
+
       if (_fadeOutEnabled) {
         await _player.setVolume(0.0);
         _player.play();
@@ -535,41 +600,56 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
         _player.play();
       }
     } catch (e) {
-       // 重新抛出到外层 catch
-       rethrow;
+      // 重新抛出到外层 catch
+      rethrow;
     }
   }
 
+  @override
+  Future<void> addQueueItem(MediaItem mediaItem) async {
+    final list = List<MediaItem>.from(queue.value)..add(mediaItem);
+    queue.add(list);
+    await _persistQueue();
+  }
+
+  @override
+  Future<void> addQueueItems(List<MediaItem> mediaItems) async {
+    if (mediaItems.isEmpty) return;
+    final list = List<MediaItem>.from(queue.value)..addAll(mediaItems);
+    queue.add(list);
+    await _persistQueue();
+  }
 
   @override
   Future<void> removeQueueItemAt(int index) async {
     if (!queue.hasValue || index < 0 || index >= queue.value.length) return;
-    
+
     final newQueue = List<MediaItem>.from(queue.value);
     final removedItem = newQueue.removeAt(index);
     queue.add(newQueue);
+    await _persistQueue();
 
     // If we removed the currently playing item, skip to next (or stop if empty)
     final currentId = mediaItem.hasValue ? mediaItem.value?.id : null;
     if (currentId == removedItem.id) {
-       if (newQueue.isEmpty) {
-         await stop();
-       } else {
-         // If we removed the last item which was playing, play the new last item or stop?
-         // Usually if index is now out of bounds, we play index-1? 
-         // But simpler: just play the item at the same index (which is the next one)
-         if (index >= newQueue.length) {
-            await skipToQueueIndex(0); // Loop back or play first? Or stop. 
-            // Let's just stop for safety if it was the last one.
-            if (newQueue.isNotEmpty) {
-               await skipToQueueIndex(0);
-            } else {
-               await stop();
-            }
-         } else {
-            await skipToQueueIndex(index);
-         }
-       }
+      if (newQueue.isEmpty) {
+        await stop();
+      } else {
+        // If we removed the last item which was playing, play the new last item or stop?
+        // Usually if index is now out of bounds, we play index-1?
+        // But simpler: just play the item at the same index (which is the next one)
+        if (index >= newQueue.length) {
+          await skipToQueueIndex(0); // Loop back or play first? Or stop.
+          // Let's just stop for safety if it was the last one.
+          if (newQueue.isNotEmpty) {
+            await skipToQueueIndex(0);
+          } else {
+            await stop();
+          }
+        } else {
+          await skipToQueueIndex(index);
+        }
+      }
     }
   }
 
@@ -582,6 +662,7 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     final newQueue = List<MediaItem>.from(queue.value);
     newQueue[index] = newItem;
     queue.add(newQueue);
+    await _persistQueue();
 
     // If the updated item is currently playing, update mediaItem and _currentItem
     final currentId = mediaItem.hasValue ? mediaItem.value?.id : null;
@@ -593,7 +674,73 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
 
   Future<void> clearQueue() async {
     queue.add([]);
+    await _persistQueue();
     await stop();
+  }
+
+  Future<void> _restoreQueueFromPrefs() async {
+    final saved = AppPreferences.instance.playbackQueue;
+    if (saved.isEmpty) return;
+
+    final restored = <MediaItem>[];
+    for (final row in saved) {
+      final item = _mediaItemFromMap(row);
+      if (item != null) restored.add(item);
+    }
+    if (restored.isNotEmpty) {
+      queue.add(restored);
+    }
+  }
+
+  Future<void> _persistQueue() async {
+    final data = queue.value.map(_mediaItemToMap).toList();
+    await AppPreferences.instance.setPlaybackQueue(data);
+  }
+
+  Map<String, dynamic> _mediaItemToMap(MediaItem item) {
+    return {
+      'id': item.id,
+      'album': item.album,
+      'title': item.title,
+      'artist': item.artist,
+      'duration': item.duration?.inSeconds,
+      'artUri': item.artUri?.toString(),
+      'extras': item.extras ?? const <String, dynamic>{},
+    };
+  }
+
+  MediaItem? _mediaItemFromMap(Map<String, dynamic> row) {
+    final id = row['id'];
+    final title = row['title'];
+    if (id is! String || id.isEmpty || title is! String || title.isEmpty) {
+      return null;
+    }
+
+    final dynamic extrasRaw = row['extras'];
+    final extras = extrasRaw is Map
+        ? extrasRaw.map((k, v) => MapEntry(k.toString(), v))
+        : <String, dynamic>{};
+
+    final durationSec = row['duration'];
+    final artUriRaw = row['artUri'];
+    Uri? artUri;
+    if (artUriRaw is String && artUriRaw.isNotEmpty) {
+      try {
+        artUri = Uri.parse(artUriRaw);
+      } catch (_) {
+        artUri = null;
+      }
+    }
+
+    return MediaItem(
+      id: id,
+      album: row['album'] as String?,
+      title: title,
+      artist: row['artist'] as String?,
+      duration: durationSec is int ? Duration(seconds: durationSec) : null,
+      artUri: artUri,
+      extras: extras,
+    );
   }
 
   PlaybackState _transformEvent(PlaybackEvent event) {
@@ -612,18 +759,25 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
         MediaAction.setRepeatMode,
       },
       androidCompactActionIndices: const [0, 1, 2],
-      processingState: {
-        ProcessingState.idle: AudioProcessingState.idle,
-        ProcessingState.loading: AudioProcessingState.loading,
-        ProcessingState.buffering: AudioProcessingState.buffering,
-        ProcessingState.ready: AudioProcessingState.ready,
-        ProcessingState.completed: AudioProcessingState.completed,
-      }[_player.processingState] ?? AudioProcessingState.idle,
+      processingState:
+          {
+            ProcessingState.idle: AudioProcessingState.idle,
+            ProcessingState.loading: AudioProcessingState.loading,
+            ProcessingState.buffering: AudioProcessingState.buffering,
+            ProcessingState.ready: AudioProcessingState.ready,
+            ProcessingState.completed: AudioProcessingState.completed,
+          }[_player.processingState] ??
+          AudioProcessingState.idle,
       playing: _player.playing,
       updatePosition: _player.position,
       bufferedPosition: _player.bufferedPosition,
       speed: _player.speed,
-      queueIndex: queue.hasValue ? queue.value.indexWhere((item) => item.id == (mediaItem.hasValue ? mediaItem.value?.id : null)) : -1,
+      queueIndex: queue.hasValue
+          ? queue.value.indexWhere(
+              (item) =>
+                  item.id == (mediaItem.hasValue ? mediaItem.value?.id : null),
+            )
+          : -1,
     );
   }
 }

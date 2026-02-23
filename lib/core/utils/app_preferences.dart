@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -10,6 +12,7 @@ class AppPreferences extends ChangeNotifier {
   static const String _kAutoDetectClipboard = 'setting_auto_detect_clipboard';
   static const String _kThemePresetIndex = 'setting_theme_preset_index';
   static const String _kDarkMode = 'setting_dark_mode';
+  static const String _kPlaybackQueue = 'playback_queue_v1';
 
   AppPreferences._();
 
@@ -48,5 +51,25 @@ class AppPreferences extends ChangeNotifier {
   bool get darkMode => _prefs.getBool(_kDarkMode) ?? false;
   Future<void> setDarkMode(bool value) async {
     await _prefs.setBool(_kDarkMode, value);
+  }
+
+  // --- 播放队列持久化 ---
+  List<Map<String, dynamic>> get playbackQueue {
+    final raw = _prefs.getString(_kPlaybackQueue);
+    if (raw == null || raw.isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return const [];
+      return decoded
+          .whereType<Map>()
+          .map((e) => e.map((k, v) => MapEntry(k.toString(), v)))
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<void> setPlaybackQueue(List<Map<String, dynamic>> items) async {
+    await _prefs.setString(_kPlaybackQueue, jsonEncode(items));
   }
 }
